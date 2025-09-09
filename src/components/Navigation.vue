@@ -9,7 +9,7 @@ import {
 </script>
 
 <template>
-    <el-menu default-active="1" class="el-menu-vertical-demo" >
+    <el-menu default-active="1" class="el-menu-vertical-demo" style="height: 100%;" >
         <RouterLink to="/home">
             <el-menu-item index="1">
                 <el-icon>
@@ -58,6 +58,16 @@ import {
 </template>
 
 <style scoped>
+:host, .el-menu-vertical-demo {
+    height: 100%;
+}
+
+.el-menu-vertical-demo:not(.el-menu--collapse) {
+    width: 200px;
+    min-height: 0;
+    height: 100%;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -78,11 +88,6 @@ import {
 
 .text {
     white-space: nowrap;
-}
-
-.el-menu-vertical-demo:not(.el-menu--collapse) {
-    width: 200px;
-    min-height: 400px;
 }
 
 .el-menu-vertical-demo a {

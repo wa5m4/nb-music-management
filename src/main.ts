@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createStore } from 'vuex';
 import './style.css'
 import App from './App.vue'
 
@@ -25,7 +26,21 @@ const router = createRouter({
     routes
 })
 
+const store = createStore({
+    state() {
+        return {
+            count: 0
+        }
+    },
+    mutations: {
+        increment(state) {
+            state.count++
+        }
+    }
+})
+
 app.use(router);
 app.use(ElementPlus);
+app.use(store);
 app.mount('#app')
 

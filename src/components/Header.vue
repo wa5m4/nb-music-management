@@ -8,7 +8,9 @@
             <div class="grid-content ep-bg-purple">LOGO</div>
         </el-col>
         <el-col :xs="4" :sm="6" :md="8" :lg="9" :xl="11">
-            <div class="grid-content ep-bg-purple-light">Search</div>
+            <div class="grid-content ep-bg-purple-light">
+                
+            </div>
         </el-col>
         <el-col :xs="4" :sm="6" :md="8" :lg="9" :xl="11">
             <div class="grid-content ep-bg-purple">User</div>
