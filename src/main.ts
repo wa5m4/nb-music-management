@@ -23,7 +23,7 @@ const routes = [
     },
     {
         path: "/subscribe",
-        component: () => import("./views/subscribe.vue")
+        component: () => import("./views/Subscribe.vue")
     },
     {
         path: "/profile",
