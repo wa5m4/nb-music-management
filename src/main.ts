@@ -11,11 +11,23 @@ const app = createApp(App)
 const routes = [
     {
         path: '/home',
-        component: () => import('./components/Home.vue')
+        component: () => import('./views/MainView.vue')
     },
     {
         path: "/",
-        component: () => import('./components/Home.vue')
+        component: () => import('./views/MainView.vue')
+    },
+    {
+        path: "/discover",
+        component: () => import('./views/Discover.vue')
+    },
+    {
+        path: "/subscribe",
+        component: () => import("./views/subscribe.vue")
+    },
+    {
+        path: "/profile",
+        component: () => import("./views/Profile.vue")
     }
 ]
 

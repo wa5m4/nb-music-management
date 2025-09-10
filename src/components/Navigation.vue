@@ -28,12 +28,12 @@ import {
                 <template #title>关注</template>
             </el-menu-item>
         </RouterLink>
-        <RouterLink to="/download">
+        <RouterLink to="/discover">
             <el-menu-item index="3">
                 <el-icon>
                     <setting />
                 </el-icon>
-                <template #title>下载</template>
+                <template #title>发现</template>
             </el-menu-item>
         </RouterLink>
         <el-sub-menu index="4">
@@ -41,7 +41,7 @@ import {
                 <el-icon>
                     <location />
                 </el-icon>
-                <span>我</span>
+                <span>我的</span>
             </template>
             <RouterLink to="/profile">
                 <el-menu-item index="4-1">我的主页</el-menu-item>
