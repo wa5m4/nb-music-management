@@ -27,7 +27,20 @@ const routes = [
     },
     {
         path: "/profile",
-        component: () => import("./views/Profile.vue")
+        component: () => import("./views/me/Profile.vue")
+    },
+    {
+        path: "/search/:query",
+        component: () => import("./views/SearchResult.vue"),
+        props: true
+    },
+    {
+        path: '/like',
+        component: () => import('./views/me/Like.vue')
+    },
+    {
+        path: '/upload',
+        component: () => import('./views/me/Upload.vue')
     }
 ]
 

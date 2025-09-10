@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
+import { Search, ArrowLeft } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 
 interface RestaurantItem {
     value: string
     link: string
 }
-
 const state2 = ref('')
+const router = useRouter()
 
 const restaurants = ref<RestaurantItem[]>([])
 const querySearch = (queryString: string, cb: any) => {
@@ -42,6 +44,18 @@ const handleSelect = (item: Record<string, any>) => {
 onMounted(() => {
     restaurants.value = loadAll()
 })
+
+// handle search button click
+const search = () => {
+    if (state2.value.trim() !== '') {
+        router.push(`/search/${state2.value}`)
+    }
+}
+
+// handle previous button click
+const goBack = () => {
+    router.go(-1);
+}
 </script>
 
 <template>
@@ -53,8 +67,10 @@ onMounted(() => {
         </el-col>
         <el-col :xs="4" :sm="6" :md="8" :lg="9" :xl="11">
             <div class="grid-content ep-bg-purple-light input-box">
+                <el-button :icon="ArrowLeft" round @click="goBack"></el-button>
                 <el-autocomplete v-model="state2" :fetch-suggestions="querySearch" :trigger-on-focus="false" clearable
-                    class="w-50" placeholder="Please Input" @select="handleSelect" />
+                    placeholder="搜你想听" @select="handleSelect" />
+                <el-button type="primary" :icon="Search" @click="search">搜索</el-button>
             </div>
         </el-col>
         <el-col :xs="4" :sm="6" :md="8" :lg="9" :xl="11">
@@ -77,9 +93,11 @@ onMounted(() => {
 }
 
 .input-box {
+    width: 100%;
+    height: 100%;
+
     display: flex;
     align-items: center;
     justify-content: center;
 }
-
 </style>
