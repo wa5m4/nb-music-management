@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e843e1f1-cbab-4259-80d1-c71677b00cfb" name="更改" comment="用户登录和注册，包括token验证，密码加密存储，email验证，视频上传，视频分p处理">
+      <change beforePath="$PROJECT_DIR$/nb_server/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/nb_server/.gitignore" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;kelis-daisiki&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/wa5m4/nb-music-management&quot;,
+    &quot;accountId&quot;: &quot;da55d450-8c24-44d9-b33a-58ce0e832744&quot;
+  }
+}</component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="customMavenHome" value="D:\Develop\apache-maven-3.9.9" />
+        <option name="localRepository" value="D:\Develop\apache-maven-3.9.9\repository" />
+        <option name="mavenHomeTypeForPersistence" value="CUSTOM" />
+        <option name="userSettingsFile" value="D:\Develop\apache-maven-3.9.9\conf\settings.xml" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="32VdRBv6IrTND1vYOjjLz9Nxzoi" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Maven. [org.apache.maven.plugins:maven-archetype-plugin:RELEASE:generate].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_music_management_backend [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_music_management_backend [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [org.apache.maven.plugins:maven-clean-plugin:3.4.1:clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [org.apache.maven.plugins:maven-clean-plugin:3.4.1:help].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [org.apache.maven.plugins:maven-compiler-plugin:3.14.0:compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.nb_server [validate].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Spring Boot.NbServerApplication.executor&quot;: &quot;Debug&quot;,
+    &quot;com.intellij.ide.FileNotInSourceRootChecker.no.check&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;E:/JavaWeb/nb_music_management_backend/nb_pojo/src/main/java/com/kelis&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;模块&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;redis&quot;,
+      &quot;mysql&quot;
+    ]
+  }
+}</component>
+  <component name="ReactorSettings">
+    <option name="notificationShown" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CreateClassDialog.RecentsKey">
+      <recent name="com.kelis.service" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\JavaWeb\nb_music_management_backend\nb_pojo\src\main\java\com\kelis" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\JavaWeb\nb_music_management_backend\nb_pojo\src\main\java\com\kelis" />
+      <recent name="E:\JavaWeb\nb_music_management_backend\nb_pojo\src\main" />
+      <recent name="E:\JavaWeb\nb_music_management_backend\nb_pojo" />
+      <recent name="E:\JavaWeb\nb_music_management_backend\nb_server\src\main\java\com\kelis" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="NbServerApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="nb_server" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.kelis.NbServerApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.23892.409" />
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-IU-252.23892.409" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="e843e1f1-cbab-4259-80d1-c71677b00cfb" name="更改" comment="" />
+      <created>1757509663736</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1757509663736</updated>
+      <workItem from="1757509666780" duration="58000" />
+      <workItem from="1757509738936" duration="8680000" />
+      <workItem from="1757518457039" duration="128000" />
+      <workItem from="1757518596391" duration="3944000" />
+      <workItem from="1757551148239" duration="15874000" />
+      <workItem from="1757569694516" duration="11704000" />
+      <workItem from="1757646850705" duration="2454000" />
+      <workItem from="1757651873236" duration="377000" />
+      <workItem from="1757652263484" duration="2647000" />
+      <workItem from="1757654927442" duration="1003000" />
+    </task>
+    <task id="LOCAL-00001" summary="用户登录">
+      <option name="closed" value="true" />
+      <created>1757651785674</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1757651785674</updated>
+    </task>
+    <task id="LOCAL-00002" summary="用户登录和注册，包括token验证，密码加密存储，email验证，视频上传，视频分p处理">
+      <option name="closed" value="true" />
+      <created>1757652950648</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1757652950648</updated>
+    </task>
+    <task id="LOCAL-00003" summary="用户登录和注册，包括token验证，密码加密存储，email验证，视频上传，视频分p处理">
+      <option name="closed" value="true" />
+      <created>1757655799013</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1757655799013</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="用户登录" />
+    <MESSAGE value="用户登录和注册，包括token验证，密码加密存储，email验证，视频上传，视频分p处理" />
+    <option name="LAST_COMMIT_MESSAGE" value="用户登录和注册，包括token验证，密码加密存储，email验证，视频上传，视频分p处理" />
+  </component>
+</project>
