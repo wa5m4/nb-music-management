@@ -9,7 +9,7 @@ import {
 </script>
 
 <template>
-    <el-menu default-active="1" class="el-menu-vertical-demo" >
+    <el-menu default-active="1" class="el-menu-vertical-demo" style="height: 100%;" >
         <RouterLink to="/home">
             <el-menu-item index="1">
                 <el-icon>
@@ -28,12 +28,12 @@ import {
                 <template #title>关注</template>
             </el-menu-item>
         </RouterLink>
-        <RouterLink to="/download">
+        <RouterLink to="/discover">
             <el-menu-item index="3">
                 <el-icon>
                     <setting />
                 </el-icon>
-                <template #title>下载</template>
+                <template #title>发现</template>
             </el-menu-item>
         </RouterLink>
         <el-sub-menu index="4">
@@ -41,7 +41,7 @@ import {
                 <el-icon>
                     <location />
                 </el-icon>
-                <span>我</span>
+                <span>我的</span>
             </template>
             <RouterLink to="/profile">
                 <el-menu-item index="4-1">我的主页</el-menu-item>
@@ -58,6 +58,16 @@ import {
 </template>
 
 <style scoped>
+:host, .el-menu-vertical-demo {
+    height: 100%;
+}
+
+.el-menu-vertical-demo:not(.el-menu--collapse) {
+    width: 200px;
+    min-height: 0;
+    height: 100%;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -78,11 +88,6 @@ import {
 
 .text {
     white-space: nowrap;
-}
-
-.el-menu-vertical-demo:not(.el-menu--collapse) {
-    width: 200px;
-    min-height: 400px;
 }
 
 .el-menu-vertical-demo a {
