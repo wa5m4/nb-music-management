@@ -3,7 +3,7 @@
 </script>
 
 <template>
-    <div> handleClose </div>
+    <div>  </div>
 </template>
 
 <style scoped>
