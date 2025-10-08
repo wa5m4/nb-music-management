@@ -1,87 +1,82 @@
-<script lang="ts" setup>
+<!-- App.vue -->
+<script setup lang="ts">
+import Navigation from '../components/Navigation.vue'
 import Header from '../components/Header.vue';
-import Navigation from '../components/Navigation.vue';
 import Footer from '../components/Footer.vue';
+import { useGlobalStore } from '../store';
+import { useRoute } from 'vue-router';
+import { computed } from 'vue';
+
+const store = useGlobalStore();
+const route = useRoute();
+
+const showLoginModal = computed(() => {
+  return route.path.startsWith('/login') && !store.isLogin;
+});
 </script>
 
 <template>
-    <div class="common-layout">
-        <div class="header">
-            <Header></Header>
-        </div>
-        <div class="center">
-            <div class="nav">
-                <Navigation></Navigation>
-            </div>
-            <div class="main">
-                <router-view />
-            </div>
-        </div>
-        <div class="footer">
+  <div class="common-layout" :class="{'blur-content': showLoginModal}">
+    <el-container>
+      <el-header>
+        <Header></Header>
+      </el-header>
+      <el-container>
+        <el-aside width="200px">
+          <Navigation />
+        </el-aside>
+        <el-container>
+          <el-main>
+            <RouterView/>
+          </el-main>
+          <el-footer>
             <Footer></Footer>
-        </div>
-    </div>
+          </el-footer>
+        </el-container>
+      </el-container>
+    </el-container>
+  </div>
+
+  <div v-if="showLoginModal" class="login-modal-overlay">
+    <RouterView />
+  </div>
 </template>
 
 <style scoped>
-.common-layout {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+.common-layout{
+  width: 100%;
+  min-height: 100vh;
+  transition: filter 0.3s ease;
 }
 
-.header {
-    height: 60px;
-    width: 100vw;
-    background-color: #f5f5f5;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 10;
+.blur-content{
+  filter: blur(5px);
+  pointer-events: none;
 }
 
-.center {
-    display: flex;
-    flex: 1;
-    margin-top: 60px;
-    margin-bottom: 60px;
-    height: calc(100vh - 120px);
-    min-height: 0;
-    /* 让子元素撑满高度 */
-    overflow: hidden;
+/* 登录模态框遮罩层 */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3); /* 半透明黑色背景 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+</style>
+
+<style>
+/* 全局样式 */
+html, body {
+  margin: 0;
+  padding: 0;
 }
 
-.nav {
-    width: 200px;
-    min-width: 160px;
-    background: #20232a;
-    color: #fff;
-    height: 100%;
-    overflow-y: auto;
-    flex-shrink: 0;
-}
-
-.main {
-    flex: 1;
-    background: #fff;
-    padding: 24px;
-    overflow-y: auto;
-    min-width: 0;
-    height: 100%;
-    /* 关键：让main高度撑满center并可滚动 */
-    box-sizing: border-box;
-}
-
-.footer {
-    height: 60px;
-    width: 100vw;
-    background-color: #f5f5f5;
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+a{
+  text-decoration: none;      
 }
 </style>

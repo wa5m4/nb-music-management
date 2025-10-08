@@ -1,18 +1,12 @@
-// router/index.ts
-import Home from '../components/Home.vue'
+import MainLayout from '../Layout/Main-layout.vue'
 import PasswordLogin from '../view/passwordLogin.vue'
 import MessageLogin from '../view/messageLogin.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LikeView from '../view/like-view.vue'
+import Home from '../components/Home.vue'
 import Login from '../components/Login.vue'
 
 const routes = [
-  {
-    path: '/home',
-    name: 'home',
-    component: Home,
-    meta: { requiresAuth: true }
-  },
   {
     path: '/login',
     name: 'login',
@@ -31,14 +25,26 @@ const routes = [
     ]
   },
   {
-    path: '/like',
-    name: 'like',
-    component: LikeView,
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/',
-    redirect: '/home'
+    component: MainLayout,
+    children: [
+      {
+        path: 'home',
+        name: 'home',
+        component: Home,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'like',
+        name: 'like',
+        component: LikeView,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '',
+        redirect: 'home'
+      }
+    ]
   }
 ]
 
