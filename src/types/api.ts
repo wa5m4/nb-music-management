@@ -54,4 +54,14 @@ export interface UserInfo {
 }
 
 
+export interface UserCollectList {
+    create_time?: string;
+    id: number;
+    musicCount: number;
+    image?: string;
+    name?: string;
+    update_time?: string;
+    [property: string]: any;
+}
+
 

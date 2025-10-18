@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LikeView from '../view/like-view.vue'
 import Home from '../components/Home.vue'
 import Login from '../components/Login.vue'
+import collectList from '../view/collectList.vue'
 
 const routes = [
   {
@@ -35,10 +36,16 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'like',
-        name: 'like',
-        component: LikeView,
+        path: 'collect',
+        name: 'collect',
+        component: collectList,
         meta: { requiresAuth: true }
+      },
+      {
+        path:'like/:id',
+        name:'like',
+        component:LikeView,
+        meta:{requiresAuth:true}
       },
       {
         path: '',
@@ -55,6 +62,7 @@ const router = createRouter({
 
 // 路由守卫保持不变
 import { useGlobalStore } from '../store';
+import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 
 router.beforeEach((to, from, next) => {
   const store = useGlobalStore();

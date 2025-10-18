@@ -3,17 +3,9 @@
     <!-- 头部区域 -->
     <div class="header">
       <!-- 可上传的封面图 -->
-      <div 
-        class="cover-container" 
-        @click="handleCoverUpload"
-        @mouseenter="handleCoverMouseEnter"
-        @mouseleave="handleCoverMouseLeave"
-      >
-        <img 
-          :src="coverUrl" 
-          alt="我喜欢的音乐封面" 
-          class="cover"
-        >
+      <div class="cover-container" @click="handleCoverUpload" @mouseenter="handleCoverMouseEnter"
+        @mouseleave="handleCoverMouseLeave">
+        <img :src="coverUrl" alt="我喜欢的音乐封面" class="cover">
         <div class="upload-mask" v-if="isHovering">
           <span>点击更换封面</span>
         </div>
@@ -28,21 +20,11 @@
         </div>
         <div class="actions">
           <!-- 播放全部按钮：Element组件 + 浅蓝色样式 -->
-          <el-button 
-            type="primary" 
-            class="play-all" 
-            @click="playAllSongs" 
-            :icon="CaretRight"
-          >
+          <el-button type="primary" class="play-all" @click="playAllSongs" :icon="CaretRight">
             播放全部
           </el-button>
           <!-- 下载按钮：Element组件 + 白色样式 -->
-          <el-button 
-            type="default" 
-            class="download" 
-            @click="downloadAllSongs" 
-            :icon="Download"
-          >
+          <el-button type="default" class="download" @click="downloadAllSongs" :icon="Download">
             下载
           </el-button>
         </div>
@@ -59,12 +41,7 @@
         <span>时长</span>
         <span>发布时间</span>
       </div>
-      <div 
-        class="list-item" 
-        v-for="(song, index) in songList" 
-        :key="song.id"
-        @click="handlePlaySong(song)"
-      >
+      <div class="list-item" v-for="(song, index) in songList" :key="song.id" @click="handlePlaySong(song)">
         <span class="index">{{ index + 1 }}</span>
         <div class="song-info">
           <img :src="song.cover" alt="歌曲封面" class="song-cover">
@@ -132,7 +109,7 @@ const formatDuration = (seconds: number): string => {
 
 onMounted(async () => {
   const globalStore = useGlobalStore();
-  
+
   // 统一判断登录状态
   if (!globalStore.isLogin) {
     console.error('用户未登录，请先登录');
@@ -145,7 +122,7 @@ onMounted(async () => {
 
     const userInfo = globalStore.userInfo;
     if (!userInfo) {
-    throw new Error('用户信息为空');
+      throw new Error('用户信息为空');
     }
     // 1. 渲染用户信息
     userAvatar.value = userInfo.avatar;
@@ -160,7 +137,7 @@ onMounted(async () => {
     };
     const response = await get<ApiResponse<LikeMusicListData>>(
       '/api/like-music-list',
-      {params, token})
+      { params, token })
 
     if (response.code === 200) {
       songList.value = response.data.music.map(song => ({
@@ -183,7 +160,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载页面数据出错：', error);
   }
-    
+
   // 3. 渲染封面图
   coverUrl.value = globalStore.coverUrl || 'https://picsum.photos/200/200?random=1';
 });
@@ -295,6 +272,7 @@ const handleCoverMouseLeave = () => {
   margin-bottom: 30px;
   gap: 20px;
 }
+
 .cover-container {
   width: 180px;
   height: 180px;
@@ -309,12 +287,14 @@ const handleCoverMouseLeave = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: filter 0.6s ease; /* 增加过渡时间到0.6秒，使动画更慢 */
+  transition: filter 0.6s ease;
+  /* 增加过渡时间到0.6秒，使动画更慢 */
 }
 
 /* 鼠标悬停时的模糊+浅色半透明效果 */
 .cover-container:hover .cover {
-  filter: blur(5px); /* 调整模糊程度 */
+  filter: blur(5px);
+  /* 调整模糊程度 */
 }
 
 .upload-mask {
@@ -323,25 +303,30 @@ const handleCoverMouseLeave = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.3); /* 浅色半透明（白色+30%透明度） */
+  background-color: rgba(255, 255, 255, 0.3);
+  /* 浅色半透明（白色+30%透明度） */
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #dfd0d0; /* 文字颜色 */
+  color: #dfd0d0;
+  /* 文字颜色 */
   font-size: 16px;
   opacity: 0;
-  transition: opacity 0.6s ease; /* 同步过渡时间 */
+  transition: opacity 0.6s ease;
+  /* 同步过渡时间 */
 }
 
 .cover-container:hover .upload-mask {
   opacity: 1;
 }
+
 /* 信息区布局 */
 .info {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 18px; /* 信息区内部元素垂直间距 */
+  gap: 18px;
+  /* 信息区内部元素垂直间距 */
 }
 
 .info h2 {
@@ -353,7 +338,8 @@ const handleCoverMouseLeave = () => {
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px; /* 头像与文字的间距 */
+  gap: 15px;
+  /* 头像与文字的间距 */
 }
 
 .user-avatar {
@@ -369,28 +355,40 @@ const handleCoverMouseLeave = () => {
 
 .actions {
   display: flex;
-  gap: 15px; /* 按钮之间的间距 */
+  gap: 15px;
+  /* 按钮之间的间距 */
 }
 
 /* 播放全部按钮样式：浅蓝色初始 + 悬停深色 */
 .play-all {
-  background-color: #18b3de !important; /* 浅蓝色初始背景 */
-  border-color: #18b3de !important; /* 边框色与背景一致 */
+  background-color: #18b3de !important;
+  /* 浅蓝色初始背景 */
+  border-color: #18b3de !important;
+  /* 边框色与背景一致 */
 }
+
 .play-all:hover {
-  background-color: #0f8ab1 !important; /* 悬停深色背景 */
-  border-color: #0f8ab1 !important; /* 悬停深色边框 */
+  background-color: #0f8ab1 !important;
+  /* 悬停深色背景 */
+  border-color: #0f8ab1 !important;
+  /* 悬停深色边框 */
 }
 
 /* 下载按钮样式：白色初始 + 悬停深色 */
 .download {
-  background-color: #fff !important; /* 白色初始背景 */
-  border-color: #ddd !important; /* 浅灰色边框 */
-  color: #333 !important; /* 文字颜色 */
+  background-color: #fff !important;
+  /* 白色初始背景 */
+  border-color: #ddd !important;
+  /* 浅灰色边框 */
+  color: #333 !important;
+  /* 文字颜色 */
 }
+
 .download:hover {
-  background-color: #f0f0f0 !important; /* 悬停深色背景 */
-  border-color: #bbb !important; /* 悬停深色边框 */
+  background-color: #f0f0f0 !important;
+  /* 悬停深色背景 */
+  border-color: #bbb !important;
+  /* 悬停深色边框 */
 }
 
 /* 歌曲列表样式优化 */
@@ -400,6 +398,7 @@ const handleCoverMouseLeave = () => {
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
+
 .list-header {
   display: flex;
   background-color: #f8f8f8;
@@ -408,18 +407,22 @@ const handleCoverMouseLeave = () => {
   font-weight: 600;
   font-size: 14px;
 }
+
 .list-header span {
   flex: 1;
   text-align: left;
 }
+
 .list-header span:nth-child(1) {
   width: 60px;
   flex: none;
   text-align: center;
 }
+
 .list-header span:nth-child(3) {
   text-align: center;
 }
+
 .list-header span:nth-child(4) {
   text-align: center;
   width: 100px;
@@ -433,24 +436,29 @@ const handleCoverMouseLeave = () => {
   border-bottom: 1px solid #f2f2f2;
   transition: background-color 0.2s;
 }
+
 .list-item:hover {
   background-color: #fafafa;
 }
+
 .list-item:active {
-  background-color: #e5f8ff; 
+  background-color: #e5f8ff;
   transition: background-color 0.2s;
 }
+
 .index {
   width: 60px;
   text-align: center;
   font-size: 14px;
   color: #666;
 }
+
 .song-info {
   display: flex;
   align-items: center;
   flex: 1;
 }
+
 .song-cover {
   width: 60px;
   height: 60px;
@@ -458,17 +466,20 @@ const handleCoverMouseLeave = () => {
   border-radius: 4px;
   margin-right: 15px;
 }
+
 .text h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
 }
+
 .artist {
   text-align: center;
   flex: 1;
   font-size: 14px;
   color: #666;
 }
+
 .duration {
   text-align: center;
   width: 100px;
