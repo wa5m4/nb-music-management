@@ -3,11 +3,11 @@
 import Navigation from '../components/Navigation.vue'
 import Header from '../components/Header.vue';
 import Footer from '../components/Footer.vue';
-import { useGlobalStore } from '../store';
+import { useAuthStore } from '../store/auth';
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
 
-const store = useGlobalStore();
+const store = useAuthStore();
 const route = useRoute();
 
 const showLoginModal = computed(() => {
@@ -59,8 +59,8 @@ const showLoginModal = computed(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 120px;
+  height: 150px;
   background: rgba(0, 0, 0, 0.3); /* 半透明黑色背景 */
   display: flex;
   justify-content: center;

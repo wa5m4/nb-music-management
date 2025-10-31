@@ -1,10 +1,11 @@
 import MainLayout from '../Layout/Main-layout.vue'
-import PasswordLogin from '../view/passwordLogin.vue'
-import MessageLogin from '../view/messageLogin.vue'
+import LoginView from '../view/login-view.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LikeView from '../view/like-view.vue'
 import Home from '../components/Home.vue'
 import Login from '../components/Login.vue'
+import RegisterView from '../view/register-view.vue'
+import Profile from '../view/me/Profile.vue'
 
 const routes = [
   {
@@ -13,14 +14,14 @@ const routes = [
     component: Login,
     children: [
       {
-        path: "messageLogin",
-        name: "messageLogin",
-        component: MessageLogin
+        path: "registerview",
+        name: "registerview",
+        component: RegisterView
       },
       {
         path: "", // 默认显示密码登录
-        name: "passwordLogin",
-        component: PasswordLogin
+        name: "loginview",
+        component: LoginView
       },
     ]
   },
@@ -41,6 +42,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'profile',
+        name: 'profile',
+        component: Profile,
+        meta: { requiresAuth: true }
+      },
+      {
         path: '',
         redirect: 'home'
       }
@@ -54,11 +61,12 @@ const router = createRouter({
 })
 
 // 路由守卫保持不变
-import { useGlobalStore } from '../store';
+import { useAuthStore } from '../store/auth'
+
 
 router.beforeEach((to, from, next) => {
-  const store = useGlobalStore();
-  const isLogin = store.isLogin;
+  const authStore = useAuthStore();
+  const isLogin = authStore.isLogin;
 
   if (to.meta.requiresAuth && !isLogin) {
     next('/login');
