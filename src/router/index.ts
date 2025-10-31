@@ -6,6 +6,7 @@ import Home from '../components/Home.vue'
 import Login from '../components/Login.vue'
 import RegisterView from '../view/register-view.vue'
 import Profile from '../view/me/Profile.vue'
+import collectList from '../view/collectList.vue'
 
 const routes = [
   {
@@ -36,9 +37,9 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'like',
-        name: 'like',
-        component: LikeView,
+        path: 'collect',
+        name: 'collect',
+        component: collectList,
         meta: { requiresAuth: true }
       },
       {

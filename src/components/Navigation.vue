@@ -46,8 +46,8 @@ import {
             <RouterLink to="/profile">
                 <el-menu-item index="4-1">我的主页</el-menu-item>
             </RouterLink>
-            <RouterLink to="/like">
-                <el-menu-item index="1-1">我的喜欢</el-menu-item>
+            <RouterLink to="/collect">
+                <el-menu-item index="1-1">我的歌单</el-menu-item>
             </RouterLink>
             <RouterLink to="/upload">
                 <el-menu-item index="1-2">我的上传</el-menu-item>
