@@ -1,22 +1,23 @@
 <template>
   <div class="like-music-page">
+
     <!-- 头部区域 -->
     <div class="header">
       <!-- 可上传的封面图 -->
       <div class="cover-container" @click="handleCoverUpload" @mouseenter="handleCoverMouseEnter"
         @mouseleave="handleCoverMouseLeave">
-        <img :src="coverUrl" alt="我喜欢的音乐封面" class="cover">
+        <img :src="currentPlaylist.image || defaultCover" alt="歌单封面" class="cover">
         <div class="upload-mask" v-if="isHovering">
           <span>点击更换封面</span>
         </div>
       </div>
       <div class="info">
-        <h2>我喜欢的音乐</h2>
+        <h2>{{ currentPlaylist.name || '歌单' }}</h2>
         <div class="user-info">
           <img :src="userAvatar" alt="用户头像" class="user-avatar">
           <span class="username">{{ username }}</span>
-          <span class="song-count">歌曲 {{ songCount }}</span>
-          <span class="create-time">创建时间 {{ createTime }}</span>
+          <span class="song-count">歌曲 {{ currentPlaylist.musicCount || 0 }}</span>
+          <span class="create-time">创建时间 {{ formatDate(currentPlaylist.create_time) }}</span>
         </div>
         <div class="actions">
           <!-- 播放全部按钮：Element组件 + 浅蓝色样式 -->
@@ -34,228 +35,400 @@
     <!-- 歌曲列表 -->
     <div class="song-list">
       <div class="list-header">
-        <span>#</span>
-        <span>标题</span>
-        <span>种类</span>
-        <span>歌手</span>
-        <span>时长</span>
-        <span>发布时间</span>
+        <span class="index-col">#</span>
+        <span class="title-col">标题</span>
+        <span class="artist-col">歌手</span>
+        <span class="type-col">种类</span>
+        <span class="duration-col">时长</span>
+        <span class="time-col">发布时间</span>
       </div>
-      <div class="list-item" v-for="(song, index) in songList" :key="song.id" @click="handlePlaySong(song)">
-        <span class="index">{{ index + 1 }}</span>
-        <div class="song-info">
-          <img :src="song.cover" alt="歌曲封面" class="song-cover">
+      <div class="list-item" v-for="(song, index) in currentPlaylist.musics || []" :key="song.id" @click="handlePlaySong(song)">
+        <span class="index-col">{{ index + 1 }}</span>
+        <div class="title-col song-info">
+          <img :src="song.image || 'https://picsum.photos/50/50?random=3'" alt="歌曲封面" class="song-cover">
           <div class="text">
-            <h3>{{ song.title }}</h3>
+            <h3>{{ song.name }}</h3>
           </div>
         </div>
-        <span class="artist">{{ song.artist }}</span>
-        <span class="type">{{ song.type }}</span>
-        <span class="duration">{{ song.duration }}</span>
-        <span class="song-create-time">{{ song.createTime }}</span>
+        <span class="artist-col">{{ song.author }}</span>
+        <span class="type-col">{{ song.type }}</span>
+        <span class="duration-col">{{ formatDuration(song.duration) }}</span>
+        <span class="time-col">{{ formatDate(song.createTime) }}</span>
       </div>
     </div>
+    <!-- 音频播放器组件 -->
+    <AudioPlayer ref="audioPlayerRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-// 导入Element Plus图标
-import { CaretRight, Download } from '@element-plus/icons-vue';
-// ========== 示例数据） ==========
-const coverUrl = ref('https://picsum.photos/200/200?random=1'); // 封面图示例
-const isHovering = ref(false); // 封面 hover 状态
-const userAvatar = ref('https://picsum.photos/30/30?random=2'); // 用户头像示例
-const username = ref('wa5m4'); // 用户名示例
-const songCount = ref(5); // 歌曲数量示例
-
-const createTime = ref('2023-10-01');
-
-// 歌曲列表示例（结构与后端返回一致）
-const songList = ref([
-  {
-    id: 1,
-    title: '背对背拥抱 (Back to Back)',
-    artist: '林俊杰',
-    duration: '03:56',
-    cover: 'https://picsum.photos/50/50?random=3', // 歌曲封面示例
-    type: '',
-    createTime: ''
-  },
-  {
-    id: 2,
-    title: '水星记',
-    artist: '郭顶',
-    duration: '05:25',
-    cover: 'https://picsum.photos/50/50?random=4',
-    type: '',
-    createTime: ''
-  }
-]);
-// =====================================================
-// 页面加载时调用后端接口获取数据
-import { onMounted } from 'vue';
-import { get, upload, post } from '../utils/index';
+import { ref, computed, nextTick } from 'vue';
+import { CaretRight, Download, MoreFilled } from '@element-plus/icons-vue';
+import { onMounted, watch } from 'vue';
+import { get, upload, post, put } from '../utils/index';
 import { useGlobalStore } from '../store/index';
-// 引入声明的类型
-import type { ApiResponse, GetLikeMusicListAPI, LikeMusicListParams } from '../types/api';
+import { useRoute } from 'vue-router';
+import { ElMessage, ElLoading } from 'element-plus';
+import type { 
+  MusicListDetail,
+  MusicDetail,
+  UploadResponse
+} from '../types/api';
+// 导入AudioPlayer组件
+import AudioPlayer from '../components/AudioPlayer.vue';
 
-// 格式化时长（秒 -> mm:ss）
+
+const route = useRoute();
+const globalStore = useGlobalStore();
+
+// ========== 响应式数据 ==========
+const isHovering = ref(false);
+const userAvatar = ref('https://picsum.photos/30/30?random=2');
+const username = ref('wa5m4');
+const currentPlaylist = ref<MusicListDetail>({} as MusicListDetail);
+const defaultCover = 'https://picsum.photos/200/200?random=1';
+// ========== 音频播放相关状态 ==========
+const audioPlayerRef = ref<InstanceType<typeof AudioPlayer> | null>(null);
+
+// ========== 工具函数 ==========
+
+/**
+ * 格式化时长（秒 => MM:SS）
+ * @param seconds 时长（秒）
+ * @returns 格式化后的时间字符串
+ */
 const formatDuration = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return '00:00';
   const min = Math.floor(seconds / 60);
   const sec = seconds % 60;
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
 
-onMounted(async () => {
-  const globalStore = useGlobalStore();
+/**
+ * 格式化日期（简化显示）
+ * @param dateString 日期字符串
+ * @returns 格式化后的日期字符串
+ */
+const formatDate = (dateString: string): string => {
+  if (!dateString) return '未知时间';
+  try {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  } catch {
+    return dateString;
+  }
+};
 
-  // 统一判断登录状态
+// ========== 数据加载函数 ==========
+
+/**
+ * 获取歌单详细信息
+ * 调用 /musicList/{id} 接口获取指定歌单的完整信息
+ * @param id 歌单ID
+ * @returns 歌单详细信息
+ */
+const fetchMusicListDetail = async (id: number): Promise<MusicListDetail | null> => {
+  console.log(`🎯 开始获取歌单 ${id} 的详细信息...`);
+  
+  try {
+    // 直接调用API获取歌单详情，包含名称、封面、歌曲列表等信息
+    const musicListData = await get<MusicListDetail>(`/musicList/${id}`);
+    console.log('✅ 获取歌单详情成功:', musicListData);
+    return musicListData;
+  } catch (error) {
+    console.error('❌ 获取歌单详情失败:', error);
+    ElMessage.error('获取歌单信息失败');
+    return null;
+  }
+};
+
+/**
+ * 加载页面数据
+ * 1. 从路由参数获取歌单ID
+ * 2. 调用后端API获取歌单详细信息
+ * 3. 更新页面显示数据
+ */
+const loadPageData = async () => {
+  console.log('🚀 开始加载页面数据...');
+  
+  // 检查登录状态
   if (!globalStore.isLogin) {
-    console.error('用户未登录，请先登录');
-    // 可选：跳转到登录页
-    window.location.href = '/login';
+    console.warn('⚠️ 用户未登录');
+    ElMessage.warning('请先登录');
     return;
   }
 
   try {
-
-    const userInfo = globalStore.userInfo;
-    if (!userInfo) {
-      throw new Error('用户信息为空');
+    // 从路由参数获取歌单ID
+    const routeId = parseInt(route.params.id as string);
+    if (!routeId) {
+      console.error('❌ 路由参数中没有有效的歌单ID');
+      ElMessage.error('无效的歌单ID');
+      return;
     }
-    // 1. 渲染用户信息
-    userAvatar.value = userInfo.avatar;
-    username.value = userInfo.username;
-    createTime.value = userInfo.createTime || '未知时间';
 
-
-    // 2. 调用接口获取音乐列表
-    const token = globalStore.token;
-    const params: LikeMusicListParams = {
-      userId: userInfo.id,
-    };
-    const response = await get<ApiResponse<LikeMusicListData>>(
-      '/api/like-music-list',
-      { params, token })
-
-    if (response.code === 200) {
-      songList.value = response.data.music.map(song => ({
-        id: song.id,
-        title: song.name,
-        artist: song.artist,
-        duration: formatDuration(song.duration), // 格式化时长
-        cover: song.image,
-        type: song.type,
-        createTime: song.createTime || '未知时间'
-      }));
-      // 更新歌曲数量
-      songCount.value = response.data.musics.length;
-      // 更新封面图（使用接口返回的列表封面）
-      coverUrl.value = response.data.image || coverUrl.value;
-
+    console.log('🎯 从路由获取歌单ID:', routeId);
+    
+    // 获取歌单详细信息
+    const musicListData = await fetchMusicListDetail(routeId);
+    
+    if (musicListData) {
+      // 更新当前歌单数据
+      currentPlaylist.value = musicListData;
+      
+      // 更新用户信息显示
+      if (globalStore.userInfo) {
+        userAvatar.value = globalStore.userInfo.avatar || userAvatar.value;
+        username.value = globalStore.userInfo.username || username.value;
+      }
+      
+      console.log('✅ 页面数据加载完成', {
+        歌单名称: musicListData.name,
+        歌曲数量: musicListData.musicCount,
+        封面: musicListData.image
+      });
     } else {
-      console.error('获取喜欢的音乐列表失败：', response.message);
+      console.warn('⚠️ 获取歌单详情失败，显示空状态');
+      currentPlaylist.value = {} as MusicListDetail;
     }
   } catch (error) {
-    console.error('加载页面数据出错：', error);
+    console.error('❌ 加载页面数据出错:', error);
+    ElMessage.error('加载页面数据失败');
+    currentPlaylist.value = {} as MusicListDetail;
+  }
+};
+
+// ========== 交互函数 ==========
+
+/**
+ * 封面上传处理
+ * 1. 打开文件选择器选择图片
+ * 2. 上传文件到 /api/common/upload
+ * 3. 获取返回的URL后更新歌单封面
+ */
+const handleCoverUpload = async () => {
+  if (!currentPlaylist.value.id) {
+    console.error('❌ 当前歌单ID为空，无法上传封面');
+    ElMessage.warning('请先选择歌单');
+    return;
   }
 
-  // 3. 渲染封面图
-  coverUrl.value = globalStore.coverUrl || 'https://picsum.photos/200/200?random=1';
-});
-
-// 2. 封面上传逻辑（POST接口）
-const handleCoverUpload = async () => {
   try {
-    // 添加文件选择逻辑（补充完整）
+    console.log('📸 打开文件选择器...');
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/jpeg, image/png';
+    input.accept = 'image/jpeg, image/png, image/gif';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const formData = new FormData();
-        formData.append('coverFile', file);
-        // 关键：指定返回类型为 ApiResponse<CoverUploadData>
-        const uploadResponse = await upload<ApiResponse<CoverUploadData>>('/api/like-music/cover/upload', formData);
-        if (uploadResponse.code === 200) {
-          const coverUrl = uploadResponse.data.coverUrl;
-          const globalStore = useGlobalStore();
-          globalStore.setCoverUrl(coverUrl); // 保存到 GlobalStore 及本地
-        } else {
-          console.error('封面上传失败：', uploadResponse.message);
+        console.log('📁 选择文件:', file.name);
+        
+        // 检查文件大小（限制为5MB）
+        if (file.size > 5 * 1024 * 1024) {
+          ElMessage.warning('图片大小不能超过5MB');
+          return;
         }
+
+        await uploadAndUpdateCover(file);
       }
     };
-    input.click(); // 触发文件选择
+    input.click();
   } catch (error) {
-    console.error('封面上传出现异常：', error);
+    console.error('❌ 封面上传出现异常:', error);
+    ElMessage.error('封面上传失败');
   }
 };
 
-// 3. 播放全部逻辑（POST接口）
+/**
+ * 上传文件并更新封面
+ * @param file 图片文件
+ */
+const uploadAndUpdateCover = async (file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 显示上传中提示
+    ElMessage.info('封面上传中...');
+
+    // 上传文件到 /api/common/upload
+    const uploadResponse = await upload<UploadResponse>('/api/common/upload', 'Picture');
+    
+    if (uploadResponse.url) {
+      const newCoverUrl = uploadResponse.url;
+      console.log('🖼️ 文件上传成功，新封面URL:', newCoverUrl);
+      
+      // 更新歌单封面
+      await updatePlaylistCover(newCoverUrl);
+    } else {
+      throw new Error('上传响应中没有URL');
+    }
+  } catch (error) {
+    console.error('❌ 文件上传失败:', error);
+    ElMessage.error('文件上传失败');
+  }
+};
+
+/**
+ * 更新歌单封面
+ * 调用PUT /musicList接口更新歌单封面信息
+ * @param newCoverUrl 新的封面URL
+ */
+const updatePlaylistCover = async (newCoverUrl: string) => {
+  if (!currentPlaylist.value.id) {
+    console.error('❌ 歌单ID为空，无法更新封面');
+    return;
+  }
+
+  try {
+    console.log('🎨 开始更新歌单封面:', newCoverUrl);
+    
+    // 调用PUT接口更新歌单信息，只传递需要修改的封面字段
+    await put('/musicList', {
+      id: currentPlaylist.value.id,
+      image: newCoverUrl
+      // 只传递ID和需要修改的image字段，其他字段保持原样
+    });
+    
+    // 更新本地数据
+    currentPlaylist.value.image = newCoverUrl;
+    
+    console.log('✅ 封面更新成功');
+    ElMessage.success('封面更新成功');
+  } catch (error) {
+    console.error('❌ 更新封面失败:', error);
+    ElMessage.error('封面更新失败');
+  }
+};
+
+/**
+ * 播放全部歌曲
+ * 使用AudioPlayer组件的playAll方法
+ */
 const playAllSongs = async () => {
+  if (!currentPlaylist.value.musics || currentPlaylist.value.musics.length === 0) {
+    ElMessage.warning('当前歌单没有歌曲');
+    return;
+  }
+
   try {
-    // 关键：指定返回类型为 ApiResponse<EmptyData>
-    const playResponse = await post<ApiResponse<EmptyData>>('/api/like-music/play-all');
-    if (playResponse.code === 200) {
-      console.log('开始播放全部歌曲：', playResponse.message);
+    // 过滤出有URL的歌曲
+    const playableSongs = currentPlaylist.value.musics.filter(song => song.url);
+    
+    if (playableSongs.length === 0) {
+      ElMessage.warning('当前歌单中没有可播放的歌曲');
+      return;
+    }
+
+    // 使用AudioPlayer组件播放全部歌曲
+    if (audioPlayerRef.value) {
+      audioPlayerRef.value.playAll(playableSongs);
+      ElMessage.success(`开始播放 ${playableSongs.length} 首歌曲`);
     } else {
-      console.error('播放全部歌曲失败：', playResponse.message);
+      ElMessage.error('播放器未初始化');
     }
   } catch (error) {
-    console.error('播放全部歌曲出现异常：', error);
+    console.error('播放全部歌曲失败:', error);
+    ElMessage.error('播放失败，请稍后重试');
   }
 };
 
-// 4. 下载全部逻辑（POST接口）
+
+/**
+ * 下载全部歌曲
+ */
 const downloadAllSongs = async () => {
+  console.log('📥 用户尝试下载全部歌曲');
+  
+  // 检查歌单是否有歌曲
+  if (!currentPlaylist.value.musics || currentPlaylist.value.musics.length === 0) {
+    ElMessage.warning('当前歌单没有歌曲');
+    return;
+  }
+  
+  // 显示版权提示信息
+  ElMessage.warning({
+    message: '由于版权保护原因，批量下载功能暂不开放',
+    duration: 3000, // 3秒后自动关闭
+    showClose: true
+  });
+  
+  console.log('⚠️ 下载功能因版权原因被阻止');
+};
+
+/**
+ * 播放单首歌曲
+ * 使用AudioPlayer组件的playSong方法
+ * @param song 歌曲信息
+ */
+const handlePlaySong = async (song: MusicDetail) => {
+  if (!song.url) {
+    ElMessage.warning('该歌曲暂无播放链接');
+    return;
+  }
+
   try {
-    // 关键：指定返回类型为 ApiResponse<EmptyData>
-    const downloadResponse = await post<ApiResponse<EmptyData>>('/api/like-music/download-all');
-    if (downloadResponse.code === 200) {
-      console.log('开始下载全部歌曲：', downloadResponse.message);
+    // 使用AudioPlayer组件播放单首歌曲
+    if (audioPlayerRef.value) {
+      const playlist = currentPlaylist.value.musics || [];
+      const index = playlist.findIndex(s => s.id === song.id);
+      audioPlayerRef.value.playSong(song, playlist, index);
+      ElMessage.success(`开始播放: ${song.name}`);
     } else {
-      console.error('下载全部歌曲失败：', downloadResponse.message);
+      ElMessage.error('播放器未初始化');
     }
   } catch (error) {
-    console.error('下载全部歌曲出现异常：', error);
+    console.error('播放歌曲失败:', error);
+    ElMessage.error('播放失败，请稍后重试');
   }
 };
 
-// 5. 播放单首歌曲逻辑（POST接口）
-const handlePlaySong = async (song: any) => {
-  try {
-    // 调用播放单首歌曲的后端接口（假设接口地址为 /api/like-music/play-song，需根据实际后端接口调整）
-    const playResponse = await post<ApiResponse<EmptyData>>('/api/like-music/play-song', { songName: song.name });
-    if (playResponse.code === 200) {
-      console.log(`开始播放歌曲: ${song.title}`);
-    } else {
-      console.error(`播放歌曲 ${song.title} 失败:`, playResponse.message);
-    }
-  } catch (error) {
-    console.error('播放歌曲出现异常:', error);
-  }
-};
 
+// ========== UI交互函数 ==========
 
-
-
-// 封面 hover 交互
+/**
+ * 封面鼠标移入事件 - 显示上传遮罩
+ */
 const handleCoverMouseEnter = () => {
   isHovering.value = true;
 };
+
+/**
+ * 封面鼠标移出事件 - 隐藏上传遮罩
+ */
 const handleCoverMouseLeave = () => {
   isHovering.value = false;
 };
 
 
 
+
+// ========== 生命周期 ==========
+
+/**
+ * 页面加载时初始化数据
+ */
+onMounted(() => {
+  console.log('🏠 页面加载完成，开始初始化...');
+  loadPageData();
+});
+
+/**
+ * 监听路由变化，当歌单ID改变时重新加载数据
+ */
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      console.log('🔄 路由参数变化，重新加载数据:', newId);
+      loadPageData();
+    }
+  }
+);
 </script>
 
 <style scoped>
-/* 全局样式重置与基础设置 */
+/* 样式保持不变 */
 .like-music-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -408,25 +581,40 @@ const handleCoverMouseLeave = () => {
   font-size: 14px;
 }
 
-.list-header span {
-  flex: 1;
+.list-header .index-col {
+  width: 60px;
+  text-align: center;
+  flex: none;
+}
+
+.list-header .title-col {
+  flex: 3;
+  min-width: 200px;
   text-align: left;
 }
 
-.list-header span:nth-child(1) {
-  width: 60px;
+.list-header .artist-col {
+  flex: 1.5;
+  min-width: 120px;
+  text-align: left;
+}
+
+.list-header .type-col {
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
+.list-header .duration-col {
+  width: 80px;
   flex: none;
   text-align: center;
 }
 
-.list-header span:nth-child(3) {
-  text-align: center;
-}
-
-.list-header span:nth-child(4) {
-  text-align: center;
-  width: 100px;
+.list-header .time-col {
+  width: 120px;
   flex: none;
+  text-align: center;
 }
 
 .list-item {
@@ -435,6 +623,7 @@ const handleCoverMouseLeave = () => {
   padding: 15px 20px;
   border-bottom: 1px solid #f2f2f2;
   transition: background-color 0.2s;
+  cursor: pointer;
 }
 
 .list-item:hover {
@@ -446,22 +635,62 @@ const handleCoverMouseLeave = () => {
   transition: background-color 0.2s;
 }
 
-.index {
+.list-item .index-col {
   width: 60px;
   text-align: center;
   font-size: 14px;
   color: #666;
+  flex: none;
+}
+
+.list-item .title-col {
+  flex: 3;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+}
+
+.list-item .artist-col {
+  flex: 1.5;
+  min-width: 120px;
+  font-size: 14px;
+  color: #666;
+  text-align: left;
+}
+
+.list-item .type-col {
+  flex: 1;
+  min-width: 80px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.list-item .duration-col {
+  width: 80px;
+  flex: none;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.list-item .time-col {
+  width: 120px;
+  flex: none;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
 }
 
 .song-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  width: 100%;
 }
 
 .song-cover {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   object-fit: cover;
   border-radius: 4px;
   margin-right: 15px;
@@ -471,20 +700,36 @@ const handleCoverMouseLeave = () => {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
-.artist {
-  text-align: center;
-  flex: 1;
-  font-size: 14px;
-  color: #666;
-}
-
-.duration {
-  text-align: center;
-  width: 100px;
-  flex: none;
-  font-size: 14px;
-  color: #666;
+@media (max-width: 768px) {
+  .like-music-page {
+    padding: 15px;
+  }
+  
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .info {
+    align-items: center;
+    text-align: center;
+  }
+  
+  .user-info {
+    justify-content: center;
+  }
+  
+  .list-header .type-col,
+  .list-item .type-col,
+  .list-header .time-col,
+  .list-item .time-col {
+    display: none;
+  }
 }
 </style>

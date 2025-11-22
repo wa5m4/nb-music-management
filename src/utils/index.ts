@@ -12,7 +12,7 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('userToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -54,8 +54,13 @@ export const post = <T>(url: string, data?: Record<string, any>): Promise<T> => 
   return service.post(url, data);
 };
 
+// PUT 请求
+export const put = <T>(url: string, data?: Record<string, any>): Promise<T> => {
+  return service.put(url, data);
+};
 // 上传请求
-export const upload = <T>(url: string, formData: FormData): Promise<T> => {
+export const upload = <T>(url: string, formData: string): Promise<T> => {
+  //formData有三种，OnlineMusic，LocalMusic，Picture
   return service.post(url, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'

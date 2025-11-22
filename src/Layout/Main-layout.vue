@@ -22,10 +22,10 @@ const showLoginModal = computed(() => {
         <Header></Header>
       </el-header>
       <el-container>
-        <el-aside width="200px">
+        <el-aside width="200px" class="fixed-aside">
           <Navigation />
         </el-aside>
-        <el-container>
+        <el-container class="main-content">
           <el-main>
             <RouterView/>
           </el-main>
@@ -52,6 +52,22 @@ const showLoginModal = computed(() => {
 .blur-content{
   filter: blur(5px);
   pointer-events: none;
+}
+
+/* 固定导航栏样式 */
+.fixed-aside {
+  position: fixed;
+  top: 60px; /* 头部高度 */
+  left: 0;
+  height: calc(100vh - 60px); /* 视口高度减去头部高度 */
+  z-index: 100;
+  overflow-y: auto; /* 如果导航栏内容过多，允许滚动 */
+}
+
+/* 主内容区域样式调整 */
+.main-content {
+  margin-left: 200px; /* 为固定导航栏留出空间 */
+  width: calc(100% - 200px);
 }
 
 /* 登录模态框遮罩层 */

@@ -1,67 +1,96 @@
 // src/types/api.ts
 
-// 1. 通用接口返回结构（所有接口的外层格式）
+// 通用接口返回结构
 export interface ApiResponse<T> {
-  code: number; // 状态码（200表示成功）
-  data: T;      // 接口返回的具体数据
-  message: string; // 提示信息
+  code: number;
+  msg: string | null;
+  data: T;
 }
 
-// 2. 获取“我喜欢的音乐”列表的请求参数
-export interface LikeMusicListParams {
-  userId: number; // 必须传入的用户ID
+// 文件上传接口返回的数据结构
+export interface UploadResponse {
+  url: string;      // 文件访问URL
+  duration: string; // 文件时长（对于音频/视频文件）
 }
 
-// 3. 获取“我喜欢的音乐”列表接口的返回数据结构（对应 data 字段）
-export interface LikeMusicListData {    
-  id: 0;
-  name: string;
-  image: string;
-  create_time: string;
-  update_time: string;
-  musics: Array<{
-    name: string;
-    author: string;
-    type: string;
-    url: string;
-    image: string;
-    id: 0;
-    createTime: string;
-    updateTime: string;
-    duration: 0;
-    status: 0;
-  }>;     
+// 音乐详情接口
+export interface MusicDetail {
+  name: string;        // 歌曲名称
+  author: string;      // 歌手
+  type: string;        // 音乐类型
+  url: string;         // 音乐文件URL
+  image: string;       // 歌曲封面
+  id: number;          // 歌曲ID
+  createTime: string;  // 创建时间
+  updateTime: string;  // 更新时间
+  duration: number;    // 时长（秒）
+  status: number;      // 状态
 }
 
-// 4. 完整的“获取我喜欢的音乐”接口定义（包含请求和响应）
-export interface GetLikeMusicListAPI {
-  params: LikeMusicListParams; // 请求时需要传的参数
-  response: ApiResponse<LikeMusicListData>; // 接口返回的完整结构
-}
-
-//5.用户信息
-export interface UserInfo {
-  id: number; // 用户ID（后端返回integer，前端用number接收）
-  username: string; // 用户名
-  email: string; // 邮箱s
-  status: '0' | '1'; // 状态：0-隐藏，1-正常（枚举值）
-  sex: '0' | '1'; // 性别：0-女，1-男，空字符串-未知
-  avatar: string; // 头像地址
-  createTime: string; // 创建时间（后端通常返回ISO字符串，如"2023-10-01 12:00:00"）
-  createPerson: string; // 创建人
-  updateTime: string; // 更新时间
-  updatePerson: string; // 更新人
-}
-
-
+// 歌单项类型（统一使用这个，删除重复的 MusicListItem）
 export interface UserCollectList {
-    create_time?: string;
-    id: number;
-    musicCount: number;
-    image?: string;
-    name?: string;
-    update_time?: string;
-    [property: string]: any;
+  id: number;           // 歌单ID
+  name: string;         // 歌单名称
+  image: string;        // 歌单封面
+  create_time: string;  // 创建时间
+  update_time: string;  // 更新时间
+  musicCount: number;   // 歌曲数量
 }
 
+// 歌单详细信息接口（包含歌曲列表）
+export interface MusicListDetail {
+  id: number;           // 歌单ID
+  name: string;         // 歌单名称
+  image: string;        // 歌单封面
+  create_time: string;  // 创建时间
+  update_time: string;  // 更新时间
+  musicCount: number;   // 歌曲数量
+  musics: MusicDetail[]; // 歌曲列表
+}
 
+// 用户信息接口
+export interface UserInfo {
+  id: number;
+  username: string;
+  email: string;
+  status: '0' | '1';
+  sex: '0' | '1';
+  avatar: string;
+  createTime: string;
+  createPerson: string;
+  updateTime: string;
+  updatePerson: string;
+}
+
+// 空数据接口（用于不需要返回数据的操作）
+export interface EmptyData {}
+
+// 播放音乐接口参数
+export interface PlayMusicParams {
+  musicId: number;    // 音乐ID
+  playlistId?: number; // 歌单ID（可选）
+}
+
+// 更新歌单封面参数
+export interface UpdateCoverParams {
+  image: string; // 封面图片URL
+}
+
+// 获取用户歌单请求参数
+export interface GetUserPlaylistsParams {
+  id: number; // 用户ID
+}
+
+// ========== API 响应类型别名（可选，用于明确语义） ==========
+
+// 获取用户歌单列表响应
+export type GetUserPlaylistsResponse = UserCollectList[];
+
+// 获取歌单详情响应
+export type GetMusicListDetailResponse = MusicListDetail;
+
+// 上传文件响应
+export type UploadFileResponse = UploadResponse;
+
+// 播放歌曲响应
+export type PlayMusicResponse = MusicDetail;

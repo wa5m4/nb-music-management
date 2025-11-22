@@ -1,14 +1,25 @@
 // src/stores/global.ts
 import { defineStore } from 'pinia';
-import type { UserInfo } from '../types/api';
+import type { UserInfo, UserCollectList } from '../types/api';
 
 export const useGlobalStore = defineStore('global', {
   state: () => ({
-    isLogin:!!localStorage.getItem('token'),
+    isLogin: !!localStorage.getItem('token'),
     userInfo: JSON.parse(localStorage.getItem('userInfo') || 'null') as UserInfo | null,
     token: localStorage.getItem('token') || '',
-    coverUrl: localStorage.getItem('coverUrl') || '', // 初始化时从本地存储获取，若没有则为空字符串
+    // 只需要存储用户歌单列表，封面和名称都从后端实时获取
+    musicLists: JSON.parse(localStorage.getItem('musicLists') || '[]') as UserCollectList[],
   }),
+
+  getters: {
+    /**
+     * 获取用户歌单列表
+     */
+    getUserPlaylists: (state) => {
+      return state.musicLists;
+    }
+  },
+
   actions: {
     // 登录成功时保存用户信息、Token
     setLoginInfo(info: { userInfo: UserInfo; token: string }) {
@@ -18,20 +29,32 @@ export const useGlobalStore = defineStore('global', {
       localStorage.setItem('token', info.token);
       localStorage.setItem('userInfo', JSON.stringify(info.userInfo));
     },
-    // 新增：保存封面URL到 Pinia 及本地存储
-    setCoverUrl(url: string) {
-      this.coverUrl = url;
-      localStorage.setItem('coverUrl', url);
+
+    // 设置用户歌单列表
+    setUserPlaylists(playlists: UserCollectList[]) {
+      this.musicLists = playlists;
+      localStorage.setItem('musicLists', JSON.stringify(this.musicLists));
     },
+
+    // 更新单个歌单信息（用于编辑名称后更新本地缓存）
+    updatePlaylist(updatedPlaylist: UserCollectList) {
+      const index = this.musicLists.findIndex(item => item.id === updatedPlaylist.id);
+      if (index !== -1) {
+        this.musicLists[index] = { ...this.musicLists[index], ...updatedPlaylist };
+        localStorage.setItem('musicLists', JSON.stringify(this.musicLists));
+      }
+    },
+
     // 登出时清空所有状态
     logout() {
       this.isLogin = false;
       this.userInfo = null;
       this.token = '';
-      this.coverUrl = ''; // 登出时也清空封面URL
+      this.musicLists = [];
+      
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
-      localStorage.removeItem('coverUrl');
+      localStorage.removeItem('musicLists');
     },
   },
 });
