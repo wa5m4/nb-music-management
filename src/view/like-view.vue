@@ -391,7 +391,6 @@ const handleCoverMouseLeave = () => {
   /* 悬停深色边框 */
 }
 
-/* 歌曲列表样式优化 */
 .song-list {
   background-color: #fff;
   border-radius: 6px;
