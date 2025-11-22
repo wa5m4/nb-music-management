@@ -62,7 +62,6 @@ const router = createRouter({
 
 // 路由守卫保持不变
 import { useGlobalStore } from '../store';
-import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 
 router.beforeEach((to, from, next) => {
   const store = useGlobalStore();
