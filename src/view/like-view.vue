@@ -28,7 +28,41 @@
           <el-button type="default" class="download" @click="downloadAllSongs" :icon="Download">
             下载
           </el-button>
+          <!-- 新建歌单时显示添加歌曲和保存按钮 -->
+          <template v-if="isNew">
+            <el-button type="primary" class="add-songs" @click="openAddSongsDialog">添加歌曲</el-button>
+            <el-button type="success" class="save-playlist" @click="saveNewPlaylist">保存歌单</el-button>
+          </template>
         </div>
+      </div>
+    </div>
+
+    <!-- 新建歌单时：显示搜索框和搜索结果 -->
+    <div v-if="isNew" class="new-playlist-panel" style="margin:20px 0;">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:600; font-size:18px">歌单名：{{ currentPlaylist.name }}</div>
+        <el-input v-model="searchQuery" placeholder="输入歌曲名称后回车或点击搜索" style="width:420px;" @keyup.enter.native="() => searchSongs()">
+          <template #append>
+            <el-button @click="() => searchSongs()">搜索</el-button>
+          </template>
+        </el-input>
+      </div>
+
+      <div style="max-height:300px; overflow:auto; border:1px solid #f2f2f2; padding:8px; border-radius:4px;">
+        <el-checkbox-group v-model="selectedSongIds">
+          <div v-for="song in candidateSongs" :key="song.id" style="display:flex; gap:12px; align-items:center; padding:8px 6px; border-bottom:1px dashed #f5f5f5;">
+            <el-checkbox :label="song.id"></el-checkbox>
+            <div style="flex:1">
+              <div style="font-weight:600">{{ song.name }}</div>
+              <div style="color:#888; font-size:12px">{{ song.author }} · {{ formatDuration(song.duration) }}</div>
+            </div>
+          </div>
+        </el-checkbox-group>
+      </div>
+
+      <div style="margin-top:12px;">
+        <el-button type="primary" @click="saveNewPlaylist">创建歌单并添加所选歌曲</el-button>
+        <el-button style="margin-left:8px;" @click="selectedSongIds = []">清空选择</el-button>
       </div>
     </div>
 
@@ -45,7 +79,7 @@
       <div class="list-item" v-for="(song, index) in currentPlaylist.musics || []" :key="song.id" @click="handlePlaySong(song)">
         <span class="index-col">{{ index + 1 }}</span>
         <div class="title-col song-info">
-          <img :src="song.image || 'https://picsum.photos/50/50?random=3'" alt="歌曲封面" class="song-cover">
+          <img :src="song.image || defaultCover" alt="歌曲封面" class="song-cover">
           <div class="text">
             <h3>{{ song.name }}</h3>
           </div>
@@ -56,37 +90,117 @@
         <span class="time-col">{{ formatDate(song.createTime) }}</span>
       </div>
     </div>
+    <!-- 批量添加歌曲对话框 -->
+    <el-dialog v-model="addSongsDialogVisible" title="选择要加入的歌曲" width="60%">
+      <div style="max-height:400px; overflow:auto;">
+        <el-checkbox-group v-model="selectedSongIds">
+          <div v-for="song in candidateSongs" :key="song.id" style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #f5f5f5;">
+            <el-checkbox :label="song.id"> 
+              <div style="margin-left:8px;">
+                <div style="font-weight:600">{{ song.name }}</div>
+                <div style="color:#888; font-size:12px">{{ song.author }} · {{ formatDuration(song.duration) }}</div>
+              </div>
+            </el-checkbox>
+          </div>
+        </el-checkbox-group>
+      </div>
+      <template #footer>
+        <el-button @click="addSongsDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="() => { addSongsDialogVisible = false; saveNewPlaylist(); }">保存并创建</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 音频播放器组件 -->
     <AudioPlayer ref="audioPlayerRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
-import { CaretRight, Download, MoreFilled } from '@element-plus/icons-vue';
+import { ref } from 'vue';
+import { CaretRight, Download } from '@element-plus/icons-vue';
 import { onMounted, watch } from 'vue';
-import { get, upload, post, put } from '../utils/index';
+import { uploadFile, getPlaylistDetail, updatePlaylistList, getMusicList, createPlaylist } from '../services/api';
 import { useGlobalStore } from '../store/index';
-import { useRoute } from 'vue-router';
-import { ElMessage, ElLoading } from 'element-plus';
-import type { 
-  MusicListDetail,
-  MusicDetail,
-  UploadResponse
-} from '../types/api';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import type { MusicListDetail, MusicDetail } from '../types/api';
 // 导入AudioPlayer组件
 import AudioPlayer from '../components/AudioPlayer.vue';
 
 
 const route = useRoute();
+const router = useRouter();
 const globalStore = useGlobalStore();
 
 // ========== 响应式数据 ==========
 const isHovering = ref(false);
-const userAvatar = ref('https://picsum.photos/30/30?random=2');
-const username = ref('wa5m4');
+const userAvatar = ref('');
+const username = ref('');
 const currentPlaylist = ref<MusicListDetail>({} as MusicListDetail);
-const defaultCover = 'https://picsum.photos/200/200?random=1';
+const defaultCover = '';
+// 新建歌单标记（如果路由 id === 'new'）
+const isNew = ref(false)
+// 批量添加歌曲对话框
+const addSongsDialogVisible = ref(false)
+const candidateSongs = ref<MusicDetail[]>([])
+const selectedSongIds = ref<number[]>([])
+
+const searchQuery = ref('')
+const searchSongs = async (page = 1, size = 50) => {
+  try {
+    const params: Record<string, any> = { pageNum: page, pageSize: size }
+    if (searchQuery.value && searchQuery.value.trim()) params.name = searchQuery.value.trim()
+    const resp = await getMusicList(params)
+    const records = resp?.data?.data?.records ?? resp?.data?.data ?? resp?.data ?? []
+    candidateSongs.value = Array.isArray(records) ? records : []
+  } catch (e) {
+    console.error('获取搜索歌曲失败', e)
+    candidateSongs.value = []
+  }
+}
+
+const openAddSongsDialog = async () => {
+  // For backward compatibility keep dialog open behavior (loads many songs)
+  await searchSongs(1, 200)
+  selectedSongIds.value = []
+  addSongsDialogVisible.value = true
+}
+
+const saveNewPlaylist = async () => {
+  if (!selectedSongIds.value || selectedSongIds.value.length === 0) {
+    ElMessage.warning('请先选择至少一首歌曲')
+    return
+  }
+  try {
+    const payload: any = {
+      name: currentPlaylist.value.name || route.query.name || '新歌单',
+      musicIds: selectedSongIds.value
+    }
+    if (currentPlaylist.value.image) payload.image = currentPlaylist.value.image
+    const resp = await createPlaylist(payload)
+    if (resp?.data && (resp.data.code === 200 || resp.data.code === 0)) {
+        ElMessage.success('歌单创建成功')
+        // 使用后端返回的数据更新页面状态
+        const data = resp.data.data ?? resp.data
+        const newId = data?.id
+        if (data) {
+          // 如果后端返回完整对象，直接使用
+          currentPlaylist.value = data as MusicListDetail
+          isNew.value = false
+          // 更新页面 URL 至真实 id，使用 replace 避免费用历史回退
+          if (newId) router.replace({ name: 'like', params: { id: newId } })
+          return
+        }
+        // 回退：跳回歌单列表
+        router.push({ name: 'collect' })
+    } else {
+      ElMessage.error(resp?.data?.msg || '创建歌单失败')
+    }
+  } catch (e) {
+    console.error('创建歌单失败', e)
+    ElMessage.error('创建歌单失败')
+  }
+}
 // ========== 音频播放相关状态 ==========
 const audioPlayerRef = ref<InstanceType<typeof AudioPlayer> | null>(null);
 
@@ -132,9 +246,13 @@ const fetchMusicListDetail = async (id: number): Promise<MusicListDetail | null>
   
   try {
     // 直接调用API获取歌单详情，包含名称、封面、歌曲列表等信息
-    const musicListData = await get<MusicListDetail>(`/musicList/${id}`);
-    console.log('✅ 获取歌单详情成功:', musicListData);
-    return musicListData;
+    const resp = await getPlaylistDetail(id)
+    const data = resp?.data?.data ?? resp?.data ?? null
+    if (!data) {
+      throw new Error('empty playlist data')
+    }
+    console.log('✅ 获取歌单详情成功:', data);
+    return data as MusicListDetail;
   } catch (error) {
     console.error('❌ 获取歌单详情失败:', error);
     ElMessage.error('获取歌单信息失败');
@@ -159,8 +277,23 @@ const loadPageData = async () => {
   }
 
   try {
-    // 从路由参数获取歌单ID
-    const routeId = parseInt(route.params.id as string);
+    const rawId = String(route.params.id || '')
+    // 新建空歌单（前端先创建空壳，用户在页面中批量选择歌曲后再提交到后端）
+    if (rawId === 'new') {
+      isNew.value = true
+      const name = String(route.query.name || '新歌单')
+      currentPlaylist.value = { id: null as any, name, image: '', musics: [], musicCount: 0 } as any
+      // 更新用户信息显示
+      if (globalStore.userInfo) {
+        userAvatar.value = globalStore.userInfo.avatar || userAvatar.value;
+        username.value = globalStore.userInfo.username || username.value;
+      }
+      console.log('🎯 新建空歌单，进入编辑页:', name)
+      return
+    }
+
+    // 普通查看已存在歌单
+    const routeId = parseInt(rawId as string)
     if (!routeId) {
       console.error('❌ 路由参数中没有有效的歌单ID');
       ElMessage.error('无效的歌单ID');
@@ -247,17 +380,17 @@ const uploadAndUpdateCover = async (file: File) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('type', 'Picture');
 
     // 显示上传中提示
     ElMessage.info('封面上传中...');
 
-    // 上传文件到 /api/common/upload
-    const uploadResponse = await upload<UploadResponse>('/api/common/upload', 'Picture');
-    
-    if (uploadResponse.url) {
-      const newCoverUrl = uploadResponse.url;
+    // 使用统一服务上传文件
+    const uploadResp = await uploadFile(formData)
+    const url = uploadResp?.data?.data?.url ?? uploadResp?.data?.url ?? uploadResp?.data
+    if (url) {
+      const newCoverUrl = url
       console.log('🖼️ 文件上传成功，新封面URL:', newCoverUrl);
-      
       // 更新歌单封面
       await updatePlaylistCover(newCoverUrl);
     } else {
@@ -283,18 +416,15 @@ const updatePlaylistCover = async (newCoverUrl: string) => {
   try {
     console.log('🎨 开始更新歌单封面:', newCoverUrl);
     
-    // 调用PUT接口更新歌单信息，只传递需要修改的封面字段
-    await put('/musicList', {
-      id: currentPlaylist.value.id,
-      image: newCoverUrl
-      // 只传递ID和需要修改的image字段，其他字段保持原样
-    });
-    
-    // 更新本地数据
-    currentPlaylist.value.image = newCoverUrl;
-    
-    console.log('✅ 封面更新成功');
-    ElMessage.success('封面更新成功');
+    // 调用统一的 updatePlaylistList 接口更新歌单信息
+    const resp = await updatePlaylistList({ id: currentPlaylist.value.id, image: newCoverUrl })
+    if (resp?.data && (resp.data.code === 200 || resp.data.code === 0)) {
+      currentPlaylist.value.image = newCoverUrl
+      console.log('✅ 封面更新成功');
+      ElMessage.success('封面更新成功');
+    } else {
+      throw new Error(resp?.data?.msg || '更新失败')
+    }
   } catch (error) {
     console.error('❌ 更新封面失败:', error);
     ElMessage.error('封面更新失败');

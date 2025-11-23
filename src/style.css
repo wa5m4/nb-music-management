@@ -1,9 +1,18 @@
-body {
-    height: 100vh;
+html, body, #app {
+    height: 100%;
+    min-height: 100%;
     margin: 0;
     padding: 0;
 }
 
+/* Ensure app root can use flex layout if needed */
 #app {
-    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+/* make main content area scroll when needed */
+.el-main {
+    overflow: auto;
 }

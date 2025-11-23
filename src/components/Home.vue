@@ -11,21 +11,21 @@
       <!-- 第一部分：轮播图 -->
       <div class="carousel-section">
         <h2 class="section-title">热门推荐</h2>
-        <div class="carousel">
-          <div 
-            class="carousel-item" 
-            v-for="(song, index) in musicList.slice(0, 3)" 
-            :key="song.id"
-            :class="{ active: carouselIndex === index }"
-            @click="handlePlaySong(song)"
-          >
-            <img :src="song.image" :alt="song.name" class="carousel-image">
-            <div class="carousel-info">
-              <h3 class="song-title">{{ song.name }}</h3>
-              <p class="song-artist">{{ song.author }}</p>
+            <div class="carousel">
+              <div 
+                class="carousel-item" 
+                v-for="(song, index) in featured.slice(0, 3)" 
+                :key="song.id"
+                :class="{ active: carouselIndex === index }"
+                @click="handlePlaySong(song, featured)"
+              >
+                <img :src="song.image" :alt="song.name" class="carousel-image">
+                <div class="carousel-info">
+                  <h3 class="song-title">{{ song.name }}</h3>
+                  <p class="song-artist">{{ song.author }}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
         <div class="carousel-indicators">
           <span 
             v-for="(_, index) in 3" 
@@ -42,11 +42,11 @@
         <div class="horizontal-grid">
           <div 
             class="horizontal-grid-item" 
-            v-for="(song, index) in musicList.slice(3, 7)" 
+            v-for="(song, index) in featured.slice(0, 4)" 
             :key="song.id"
             :style="{ backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'][index] }"
           >
-            <div class="horizontal-grid-content" @click="handlePlaySong(song)">
+            <div class="horizontal-grid-content" @click="handlePlaySong(song, featured)">
               <img :src="song.image" :alt="song.name" class="horizontal-grid-image">
               <div class="horizontal-grid-overlay">
                 <h4>{{ song.name }}</h4>
@@ -73,7 +73,7 @@
               v-for="song in dailyRecommend.slice(0, 3)" 
               :key="song.id"
             >
-              <div class="item-content" @click="handlePlaySong(song)">
+              <div class="item-content" @click="handlePlaySong(song, dailyRecommend)">
                 <div class="image-container">
                     <img :src="song.image" :alt="song.name" class="item-image">
                     <div class="play-overlay">
@@ -96,7 +96,7 @@
               v-for="song in dailyRecommend.slice(3, 6)" 
               :key="song.id"
             >
-              <div class="item-content" @click="handlePlaySong(song)">
+              <div class="item-content" @click="handlePlaySong(song, dailyRecommend)">
                 <div class="image-container">
                   <img :src="song.image" :alt="song.name" class="item-image">
                   <div class="play-overlay">
@@ -119,7 +119,7 @@
       <!-- 第四部分：音乐列表 -->
       <div class="list-section">
         <h2 class="section-title">推荐歌单</h2>
-        <div class="music-list">
+          <div class="music-list">
           <div class="list-header">
             <span class="index-col">#</span>
             <span class="title-col">标题</span>
@@ -130,7 +130,7 @@
           </div>
           <div 
             class="list-item" 
-            v-for="(song, index) in musicList.slice(7)" 
+            v-for="(song, index) in playlistRecommend" 
             :key="song.id"
           >
             <span class="index-col">{{ index + 1 }}</span>
@@ -144,12 +144,31 @@
             <span class="type-col">{{ song.type }}</span>
             <span class="duration-col">{{ formatDuration(song.duration) }}</span>
             <div class="action-col">
-              <button class="play-btn" @click="handlePlaySong(song)" title="播放">
+              <button class="play-btn" @click="handlePlaySong(song, playlistRecommend)" title="播放">
                 ▶
               </button>
               <button class="favorite-btn" @click="handleAddToFavorite(song)" title="收藏">
                 ♡
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 新增部分：我创建的歌单（用户） -->
+      <div class="list-section" v-if="myPlaylists && myPlaylists.length">
+        <h2 class="section-title">我创建的歌单</h2>
+        <div class="playlists-grid" style="margin-top:12px;">
+          <div class="grid-inner" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px;">
+            <div v-for="pl in myPlaylists" :key="pl.id">
+              <el-card class="playlist-card" shadow="hover">
+                <div style="height:140px; overflow:hidden; border-radius:8px;">
+                  <img :src="pl.image || pl.cover || '/default-cover.png'" style="width:100%; height:100%; object-fit:cover;" />
+                </div>
+                <div style="padding:12px;">
+                  <div style="font-weight:600;">{{ pl.name || pl.title }}</div>
+                  <div style="color:#888; font-size:12px; margin-top:6px;">{{ pl.musicCount ?? pl.trackCount ?? 0 }} 首</div>
+                </div>
+              </el-card>
             </div>
           </div>
         </div>
@@ -163,15 +182,61 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
-import { get } from '../utils/index'
+import { getMusicList, getUserPlaylists } from '../services/api'
+import { useAuthStore } from '../store/auth'
 import type { MusicDetail } from '../types/api'
 import { ElMessage } from 'element-plus'
 
+// 工具函数
+const shuffle = <T,>(arr: T[]) => {
+  const a = arr.slice()
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = a[i]
+    a[i] = a[j]
+    a[j] = tmp
+  }
+  return a
+}
+
+function splitIntoGroups<T>(records: T[], sizes: number[]) {
+  const total = sizes.reduce((s, v) => s + v, 0)
+  if (!records || records.length === 0) return sizes.map(() => [])
+  if (records.length >= total) {
+    const s = shuffle(records)
+    let offset = 0
+    return sizes.map(sz => {
+      const group = s.slice(offset, offset + sz)
+      offset += sz
+      return group
+    })
+  }
+  const pool: T[] = []
+  while (pool.length < total) pool.push(...records)
+  const uniqPool = shuffle(pool)
+  const out: T[][] = []
+  let baseOffset = 0
+  for (const sz of sizes) {
+    const start = baseOffset % uniqPool.length
+    const group: T[] = []
+    for (let i = 0; i < sz; i++) {
+      group.push(uniqPool[(start + i) % uniqPool.length])
+    }
+    out.push(group)
+    baseOffset += Math.max(1, Math.floor((records.length || 1) / Math.max(1, sz)))
+  }
+  return out
+}
+
 // 音乐数据
 const musicList = ref<MusicDetail[]>([])
-const dailyRecommend = ref<MusicDetail[]>([])
+const featured = ref<MusicDetail[]>([]) // 精选推荐（4条）
+const dailyRecommend = ref<MusicDetail[]>([]) // 每日推荐（6条）
+const playlistRecommend = ref<MusicDetail[]>([]) // 推荐歌单（6条）
 const loading = ref(false)
 const refreshing = ref(false)
+// 用户创建的歌单
+const myPlaylists = ref<any[]>([])
 
 // 轮播图当前索引
 const carouselIndex = ref(0)
@@ -179,55 +244,148 @@ const carouselIndex = ref(0)
 // 音频播放器引用
 const audioPlayerRef = ref()
 
+// 已移除 fetchRandomRecords：使用 fetchEnoughRecords 保证数量与去重逻辑
+
 /**
- * 获取随机音乐列表
+ * 确保获取到至少 `count` 条后端返回的记录。
+ * 会按页抓取并去重累积，最多尝试 `maxPages` 次请求；若仍不足，使用已有记录重复填充（仍来自后端）。
+ */
+async function fetchEnoughRecords(count = 6, maxPages = 8) {
+  try {
+    if (count <= 0) return []
+    const seen = new Map()
+    const addRecords = (arr: any[]) => {
+      for (const r of arr || []) {
+        if (!r) continue
+        const id = r.id ?? r._id ?? JSON.stringify(r)
+        if (!seen.has(id)) seen.set(id, r)
+      }
+    }
+
+    // 首次请求获取总数与第一页数据
+    const firstResp = await getMusicList({ pageNum: 1, pageSize: count })
+    const normFirst = (resp: any) => {
+      const top = resp?.data ?? {}
+      const inner = top.data ?? top
+      const records = Array.isArray(inner.records) ? inner.records : (Array.isArray(inner.list) ? inner.list : (Array.isArray(inner) ? inner : []))
+      const total = Number(inner.total) || records.length || 0
+      return { total, records }
+    }
+    const first = normFirst(firstResp)
+    addRecords(first.records)
+
+    const total = Math.max(0, Number(first.total || 0))
+    const totalPages = Math.max(1, Math.ceil(total / Math.max(1, count)))
+
+    // 如果已经足够，直接返回
+    if (seen.size >= count) {
+      return Array.from(seen.values()).slice(0, count)
+    }
+
+    // 按随机页或顺序页继续拉取，直到达到需求或用尽最大尝试次数
+    const attempts = Math.min(maxPages, totalPages)
+    const tried = new Set()
+    tried.add(1)
+    for (let i = 0; i < attempts && seen.size < count; i++) {
+      // 随机选择页码，避免始终命中同一页
+      let page = Math.floor(Math.random() * totalPages) + 1
+      // 保证不重复尝试同一页
+      let tries = 0
+      while (tried.has(page) && tries < 5) {
+        page = Math.floor(Math.random() * totalPages) + 1
+        tries++
+      }
+      tried.add(page)
+      const resp = await getMusicList({ pageNum: page, pageSize: count })
+      const n = normFirst(resp)
+      addRecords(n.records)
+    }
+
+    // 如果仍然不足，用已有记录重复填充
+    const collected: any[] = Array.from(seen.values())
+    if (collected.length >= count) return collected.slice(0, count)
+    const out: any[] = []
+    if (collected.length === 0) return []
+    while (out.length < count) {
+      const remaining: number = count - out.length
+      out.push(...collected.slice(0, Math.min(collected.length, remaining)))
+    }
+    return out
+  } catch (e) {
+    console.error('fetchEnoughRecords error', e)
+    return []
+  }
+}
+
+/**
+ * 获取推荐（首页初始化）
+ * 保证精选4条、每日6条、推荐歌单6条，且三组之间尽量不重叠
  */
 const fetchRandomMusic = async () => {
   loading.value = true
   try {
-    // 调用后端接口获取随机音乐列表，请求16首歌曲（10首主列表+6首每日推荐）
-    const response = await get<MusicDetail[]>('/music/random', {
-      params: { length: 16 }
-    })
-    
-    if (response && Array.isArray(response)) {
-      musicList.value = response.slice(0, 10)
-      dailyRecommend.value = response.slice(10, 16)
-      console.log('✅ 获取随机音乐列表成功:', response)
+    const sizes = [4, 6, 6]
+    const totalNeeded = sizes.reduce((s, v) => s + v, 0)
+    // 尝试获取更大的池以提高非重复性
+    const records = await fetchEnoughRecords(Math.max(12, totalNeeded), 10)
+    if (Array.isArray(records) && records.length) {
+      const groups = splitIntoGroups(records, sizes)
+      featured.value = groups[0] || []
+      dailyRecommend.value = groups[1] || []
+      playlistRecommend.value = groups[2] || []
+      musicList.value = (groups[0] || []).concat(groups[1] || []).slice(0, 10)
+      console.log('✅ 获取推荐音乐成功，精选:', featured.value.length, '每日:', dailyRecommend.value.length, '歌单:', playlistRecommend.value.length)
     } else {
-      console.warn('API返回数据格式不符合预期')
-      // 使用模拟数据作为回退
-      useMockData()
+      featured.value = []
+      dailyRecommend.value = []
+      playlistRecommend.value = []
+      musicList.value = []
+      ElMessage.warning('暂无推荐音乐')
     }
   } catch (error) {
-    console.error('❌ 获取随机音乐列表失败:', error)
+    console.error('❌ 获取推荐音乐失败:', error)
     ElMessage.error('获取推荐音乐失败')
-    // 使用模拟数据作为回退
-    useMockData()
+    featured.value = []
+    dailyRecommend.value = []
+    playlistRecommend.value = []
+    musicList.value = []
   } finally {
     loading.value = false
   }
 }
 
 /**
- * 刷新每日推荐
+ * 刷新每日推荐（从后端拉取6条）
  */
 const refreshDailyRecommend = async () => {
   refreshing.value = true
   try {
-    // 调用后端接口获取6首新的推荐歌曲
-    const response = await get<MusicDetail[]>('/music/random', {
-      params: { length: 6 }
-    })
-    
-    if (response && Array.isArray(response)) {
-      dailyRecommend.value = response
-      ElMessage.success('推荐已更新')
-      console.log('✅ 刷新每日推荐成功:', response)
-    } else {
-      console.warn('API返回数据格式不符合预期')
-      ElMessage.warning('刷新失败，请重试')
+    // 获取更大的候选池，优先选出与当前不重复的 6 条
+    const pool = await fetchEnoughRecords(20, 10)
+    console.debug('[Home] refresh pool size:', Array.isArray(pool) ? pool.length : 0)
+    if (!Array.isArray(pool) || pool.length === 0) {
+      ElMessage.warning('刷新失败：未能从后端获取到候选')
+      return
     }
+    const currentIds = new Set(dailyRecommend.value.map(d => d.id))
+    const candidates = shuffle(pool).filter((r: any) => !currentIds.has(r.id))
+    const newList: any[] = []
+    if (candidates.length >= 6) {
+      newList.push(...candidates.slice(0, 6))
+    } else {
+      newList.push(...candidates)
+      const filler = shuffle(pool)
+      for (let i = 0; i < filler.length && newList.length < 6; i++) {
+        const item = filler[i]
+        if (!newList.find(n => n.id === item.id)) newList.push(item)
+      }
+      while (newList.length < 6 && pool.length > 0) {
+        newList.push(pool[newList.length % pool.length])
+      }
+    }
+    dailyRecommend.value = newList.slice(0, 6)
+    ElMessage.success('推荐已更新')
+    console.log('✅ 刷新每日推荐成功，条数：', dailyRecommend.value.length, '候选池:', pool.length)
   } catch (error) {
     console.error('❌ 刷新每日推荐失败:', error)
     ElMessage.error('刷新失败')
@@ -236,119 +394,16 @@ const refreshDailyRecommend = async () => {
   }
 }
 
-/**
- * 使用模拟数据作为回退方案
- */
-const useMockData = () => {
-  const mockData: MusicDetail[] = [
-    {
-      id: 1, name: '夜曲', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      image: 'https://picsum.photos/300/300?random=1', createTime: '2023-01-01',
-      updateTime: '2023-01-01', duration: 240, status: 1
-    },
-    {
-      id: 2, name: '七里香', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      image: 'https://picsum.photos/300/300?random=2', createTime: '2023-01-02',
-      updateTime: '2023-01-02', duration: 260, status: 1
-    },
-    {
-      id: 3, name: '青花瓷', author: '周杰伦', type: '中国风',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      image: 'https://picsum.photos/300/300?random=3', createTime: '2023-01-03',
-      updateTime: '2023-01-03', duration: 280, status: 1
-    },
-    {
-      id: 4, name: '简单爱', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-      image: 'https://picsum.photos/300/300?random=4', createTime: '2023-01-04',
-      updateTime: '2023-01-04', duration: 220, status: 1
-    },
-    {
-      id: 5, name: '稻香', author: '周杰伦', type: '民谣',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-      image: 'https://picsum.photos/300/300?random=5', createTime: '2023-01-05',
-      updateTime: '2023-01-05', duration: 300, status: 1
-    },
-    {
-      id: 6, name: '告白气球', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
-      image: 'https://picsum.photos/300/300?random=6', createTime: '2023-01-06',
-      updateTime: '2023-01-06', duration: 250, status: 1
-    },
-    {
-      id: 7, name: '晴天', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
-      image: 'https://picsum.photos/300/300?random=7', createTime: '2023-01-07',
-      updateTime: '2023-01-07', duration: 270, status: 1
-    },
-    {
-      id: 8, name: '双截棍', author: '周杰伦', type: '摇滚',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
-      image: 'https://picsum.photos/300/300?random=8', createTime: '2023-01-08',
-      updateTime: '2023-01-08', duration: 230, status: 1
-    },
-    {
-      id: 9, name: '东风破', author: '周杰伦', type: '中国风',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
-      image: 'https://picsum.photos/300/300?random=9', createTime: '2023-01-09',
-      updateTime: '2023-01-09', duration: 290, status: 1
-    },
-    {
-      id: 10, name: '听妈妈的话', author: '周杰伦', type: '说唱',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
-      image: 'https://picsum.photos/300/300?random=10', createTime: '2023-01-10',
-      updateTime: '2023-01-10', duration: 260, status: 1
-    },
-    // 每日推荐数据
-    {
-      id: 11, name: '以父之名', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3',
-      image: 'https://picsum.photos/300/300?random=11', createTime: '2023-01-11',
-      updateTime: '2023-01-11', duration: 240, status: 1
-    },
-    {
-      id: 12, name: '发如雪', author: '周杰伦', type: '中国风',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3',
-      image: 'https://picsum.photos/300/300?random=12', createTime: '2023-01-12',
-      updateTime: '2023-01-12', duration: 280, status: 1
-    },
-    {
-      id: 13, name: '珊瑚海', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3',
-      image: 'https://picsum.photos/300/300?random=13', createTime: '2023-01-13',
-      updateTime: '2023-01-13', duration: 260, status: 1
-    },
-    {
-      id: 14, name: '不能说的秘密', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3',
-      image: 'https://picsum.photos/300/300?random=14', createTime: '2023-01-14',
-      updateTime: '2023-01-14', duration: 250, status: 1
-    },
-    {
-      id: 15, name: '彩虹', author: '周杰伦', type: '流行',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3',
-      image: 'https://picsum.photos/300/300?random=15', createTime: '2023-01-15',
-      updateTime: '2023-01-15', duration: 270, status: 1
-    },
-    {
-      id: 16, name: '千里之外', author: '周杰伦', type: '中国风',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3',
-      image: 'https://picsum.photos/300/300?random=16', createTime: '2023-01-16',
-      updateTime: '2023-01-16', duration: 290, status: 1
-    }
-  ]
-  musicList.value = mockData.slice(0, 10)
-  dailyRecommend.value = mockData.slice(10, 16)
-}
+// 已移除本地模拟数据，推荐来源统一由后端提供
 
 /**
  * 播放单首歌曲
  */
-const handlePlaySong = (song: MusicDetail) => {
+const handlePlaySong = (song: MusicDetail, list?: MusicDetail[]) => {
+  const playList = Array.isArray(list) && list.length ? list : musicList.value
+  const idx = (playList && playList.findIndex) ? playList.findIndex(s => s.id === song.id) : 0
   if (audioPlayerRef.value) {
-    audioPlayerRef.value.playSong(song, musicList.value, musicList.value.findIndex(s => s.id === song.id))
+    audioPlayerRef.value.playSong(song, playList, idx >= 0 ? idx : 0)
     ElMessage.success(`开始播放: ${song.name} - ${song.author}`)
   } else {
     ElMessage.warning('播放器未初始化')
@@ -386,7 +441,50 @@ const formatDuration = (seconds: number) => {
 onMounted(() => {
   fetchRandomMusic()
   startCarousel()
+  fetchMyPlaylists()
 })
+
+/** 获取当前用户创建的歌单并显示在首页 */
+async function fetchMyPlaylists() {
+  try {
+    const auth = useAuthStore()
+    let userId: any = null
+    if (auth && auth.user && (auth.user as any).id) {
+      userId = (auth.user as any).id
+    } else {
+      // 优先检查 localStorage 中常见 key
+      const raw = localStorage.getItem('user') || localStorage.getItem('userInfo')
+      if (raw) {
+        try { userId = JSON.parse(raw)?.id } catch {}
+      }
+    }
+    // 若没有，再尝试从 token 解码
+    if (!userId) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          const parts = token.split('.')
+          if (parts.length >= 2) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+            userId = payload?.id ?? payload?.userId ?? payload?.sub ?? payload?.uid ?? null
+          }
+        } catch (e) {
+          console.warn('decode token failed', e)
+        }
+      }
+    }
+    if (!userId) return
+    // 调试：打印候选 id 源
+    console.log('[debug] Home fetch candidate ids -> auth.user.id=', auth?.user?.id, 'localStorage user id=', JSON.parse(localStorage.getItem('user') || localStorage.getItem('userInfo') || 'null')?.id)
+    const resp = await getUserPlaylists(userId)
+    if (resp?.data && (resp.data.code === 200 || resp.data.code === 0)) {
+      const list = resp.data.data?.records || resp.data.data || []
+      myPlaylists.value = Array.isArray(list) ? list : []
+    }
+  } catch (e) {
+    console.error('fetchMyPlaylists failed', e)
+  }
+}
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 <script setup>
 import { useAuthStore } from '../store/auth';
 import { useRouter } from 'vue-router';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import api from '../services/api';
 // 引入 Element Plus 的消息提示组件
 import { ElMessage } from 'element-plus';
@@ -39,6 +39,13 @@ const loginForm = ref({
   code: '',
   sex: '男',
   emailCode: '',
+});
+
+// 实时密码校验，输入时持续显示错误直到满足要求
+const passwordError = computed(() => {
+  const pwd = loginForm.value.password || '';
+  const pattern = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z])/;
+  return pattern.test(pwd) ? '' : '密码格式错误：需包含数字、一个大写字母和一个小写字母';
 });
 
 // 验证码倒计时
@@ -79,6 +86,14 @@ const handleRegister = async () => {
     ElMessage.warning('请填写完整注册信息');
     return;
   }
+
+  // 密码格式校验：至少包含一个数字、一个大写字母和一个小写字母
+  const passwordPattern = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z])/;
+  if (!passwordPattern.test(loginForm.value.password.trim())) {
+    ElMessage.warning('密码格式错误：需包含数字、一个大写字母和一个小写字母');
+    return;
+  }
+  
 
   try {
     const success = await store.register({
@@ -206,7 +221,7 @@ onMounted(() => {
             </el-input>
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item :error="passwordError" :show-message="!!passwordError">
             <el-input 
               type="password" 
               placeholder="请输入密码" 

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { Search, ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store/auth'
 
 interface RestaurantItem {
     value: string
@@ -9,6 +10,7 @@ interface RestaurantItem {
 }
 const state2 = ref('')
 const router = useRouter()
+const auth = useAuthStore()
 
 const restaurants = ref<RestaurantItem[]>([])
 const querySearch = (queryString: string, cb: any) => {
@@ -74,11 +76,14 @@ const goBack = () => {
             </div>
         </el-col>
         <el-col :xs="4" :sm="6" :md="8" :lg="9" :xl="11">
-            <div class="grid-content ep-bg-purple">User</div>
+            <div class="grid-content ep-bg-purple" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer" @click="router.push('/profile')">
+                <el-avatar :src="auth.user?.avatar" />
+                <span>{{ auth.user?.username || '未登录' }}</span>
+            </div>
         </el-col>
-        <el-col :xs="8" :sm="6" :md="4" :lg="3" :xl="1">
+        <!-- <el-col :xs="8" :sm="6" :md="4" :lg="3" :xl="1">
             <div class="grid-content ep-bg-purple-light">Setting</div>
-        </el-col>
+        </el-col> -->
     </el-row>
 </template>
 

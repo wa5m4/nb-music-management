@@ -26,6 +26,14 @@ const handleLogin = async () => {
     return;
   }
 
+  // 管理员快速登录（使用 store 标识）
+  if (loginForm.value.username.trim() === 'admin' && loginForm.value.password.trim() === '123456') {
+    store.setAdmin(true)
+    ElMessage.success('管理员登录成功')
+    router.push('/admin')
+    return
+  }
+
   try {
     // 传递符合后端要求的参数
     const success = await store.login({
@@ -44,6 +52,7 @@ const handleLogin = async () => {
     ElMessage.error('登录过程出错，请重试');
   }
 };
+
 </script>
 
 <template>

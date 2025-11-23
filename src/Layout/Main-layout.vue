@@ -45,7 +45,10 @@ const showLoginModal = computed(() => {
 <style scoped>
 .common-layout{
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   transition: filter 0.3s ease;
 }
 
@@ -75,8 +78,8 @@ const showLoginModal = computed(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 120px;
-  height: 150px;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.3); /* 半透明黑色背景 */
   display: flex;
   justify-content: center;
@@ -96,3 +99,18 @@ a{
   text-decoration: none;      
 }
 </style>
+
+/* Layout adjustments for Element Plus containers */
+.common-layout >>> .el-container {
+  height: 100%;
+}
+
+.common-layout >>> .el-container > .el-container {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.common-layout >>> .el-main {
+  flex: 1 1 auto;
+  overflow: auto;
+}
