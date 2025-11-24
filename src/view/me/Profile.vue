@@ -40,14 +40,14 @@
           </div>
 
           <div v-else class="grid-inner">
-            <div class="grid-item" v-for="pl in playlists" :key="pl.id">
+            <div class="grid-item" v-for="pl in playlists" :key="pl.id" @click="openPlaylist(pl)" style="cursor:pointer;">
               <el-card class="playlist-card" shadow="hover">
                 <div class="playlist-cover">
-                  <el-image :src="pl.cover || '/default-cover.png'" fit="cover" class="cover-img"></el-image>
+                  <el-image :src="playlistCover(pl)" fit="cover" class="cover-img"></el-image>
                 </div>
                 <div class="playlist-body">
                   <div class="title">{{ pl.name || pl.title || '未命名歌单' }}</div>
-                  <div class="meta">{{ pl.trackCount ?? pl.count ?? 0 }} 首</div>
+                  <div class="meta">{{ playlistCount(pl) }} 首</div>
                 </div>
               </el-card>
             </div>
@@ -63,7 +63,7 @@ import { onMounted, ref } from 'vue'
 import { useAuthStore } from '../../store/auth'
 import { useRouter } from 'vue-router'
 import { Setting } from '@element-plus/icons-vue'
-import { getUserPlaylists } from '../../services/api'
+import { getUserPlaylists, getPlaylistDetail, getMusicList } from '../../services/api'
 import { ElMessage } from 'element-plus'
 
 const auth = useAuthStore()
@@ -77,7 +77,9 @@ async function fetchPlaylists() {
         const resp = await getUserPlaylists((user as any).id)
         if (resp.data?.code === 200) {
             // 兼容多种后端字段结构
-            playlists.value = resp.data.data?.records || resp.data.data || []
+      playlists.value = resp.data.data?.records || resp.data.data || []
+      // 若后端返回的每个歌单没有 musics 明细，但有 musicCount，则尝试补充首曲封面以作歌单封面
+      fillMissingCovers()
         } else {
             ElMessage.error(resp.data?.msg || '获取歌单失败')
         }
@@ -86,12 +88,105 @@ async function fetchPlaylists() {
     }
 }
 
+/**
+ * 遍历当前 playlists，针对没有封面且存在歌曲数量的歌单，异步拉取歌单详情以尝试获取首首歌曲的封面
+ */
+async function fillMissingCovers() {
+  try {
+    for (const pl of playlists.value) {
+      try {
+        const hasCover = !!(pl.image || pl.cover || pl.coverUrl || pl.imageUrl)
+        const count = pl.musicCount ?? pl.trackCount ?? pl.count ?? (Array.isArray(pl.musics) ? pl.musics.length : (Array.isArray(pl.list) ? pl.list.length : (Array.isArray(pl.records) ? pl.records.length : 0)))
+        if (!hasCover && count > 0) {
+          console.debug('[Profile] 尝试补充封面，playlist id=', pl.id)
+          const detailResp = await getPlaylistDetail(pl.id)
+          const detail = detailResp?.data?.data ?? detailResp?.data ?? {}
+          const mus = detail.musics ?? detail.records ?? detail.list ?? detail.musicIds ?? []
+          if (!mus || (Array.isArray(mus) && mus.length === 0)) {
+            console.debug('[Profile] 歌单详情未返回 musics/list/records，跳过', pl.id)
+            continue
+          }
+
+          // 第一项可能是对象或只是 id
+          const first = mus[0]
+          let img: string | null = null
+          if (first && typeof first === 'object') {
+            img = first.image || first.cover || null
+          } else if (first) {
+            // first 是 id，需要再拉取该歌曲详情
+            try {
+              const songResp = await getMusicList({ pageNum: 1, pageSize: 1, id: first })
+              const records = songResp?.data?.data?.records ?? songResp?.data?.data ?? songResp?.data ?? []
+              const song = Array.isArray(records) && records.length ? records[0] : null
+              img = song?.image || song?.cover || null
+            } catch (e) {
+              console.warn('[Profile] 获取首曲详情失败', first, e)
+            }
+          }
+
+          if (img) {
+            pl.image = img
+            console.debug('[Profile] 补充到歌单封面', pl.id, img)
+          } else {
+            console.debug('[Profile] 未找到可用封面 for', pl.id)
+          }
+        }
+      } catch (err) {
+        // 单个歌单请求失败不影响整体
+        console.warn('fillMissingCovers failed for', pl?.id, err)
+      }
+    }
+  } catch (e) {
+    console.error('fillMissingCovers error', e)
+  }
+}
+
 function refresh() {
     fetchPlaylists()
 }
 
 function goSettings() {
     router.push('/settings')
+}
+
+/** 点击歌单卡片并跳转到歌单详情页 */
+function openPlaylist(pl: any) {
+  if (!pl || !pl.id) return
+  router.push({ name: 'like', params: { id: pl.id } })
+}
+
+/**
+ * 兼容计算歌单内歌曲数量
+ */
+function playlistCount(pl: any) {
+  if (!pl) return 0
+  if (pl.musicCount != null) return pl.musicCount
+  if (pl.trackCount != null) return pl.trackCount
+  if (pl.count != null) return pl.count
+  const mus = pl.musics ?? pl.list ?? pl.records ?? pl.musicIds
+  if (Array.isArray(mus)) return mus.length
+  return 0
+}
+
+/**
+ * 计算歌单封面：优先使用歌单自身的 image/cover 字段，
+ * 否则尝试使用歌单第一首歌曲的 image 字段作为封面
+ */
+function playlistCover(pl: any) {
+  if (!pl) return '/default-cover.png'
+  if (pl.image) return pl.image
+  if (pl.cover) return pl.cover
+  if (pl.coverUrl) return pl.coverUrl
+  if (pl.imageUrl) return pl.imageUrl
+  const mus = pl.musics ?? pl.list ?? pl.records
+  if (Array.isArray(mus) && mus.length > 0) {
+    const first = mus[0]
+    if (first && typeof first === 'object') {
+      if (first.image) return first.image
+      if (first.cover) return first.cover
+    }
+  }
+  return '/default-cover.png'
 }
 
 onMounted(() => {

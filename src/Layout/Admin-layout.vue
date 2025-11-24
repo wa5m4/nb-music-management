@@ -37,6 +37,7 @@ function handleLogout() {
           <template #title>歌曲管理</template>
           <el-menu-item index="songs">歌曲列表</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="ads">广告管理</el-menu-item>
         <el-menu-item index="settings">系统设置</el-menu-item>
       </el-menu>
     </el-aside>

@@ -8,12 +8,12 @@
             <div class="collect-item" v-for="collect in collectList" :key="collect.id">
                 <div class="collect-item-inner">
                     <div class="thumb" @click="handleCollect(collect.id)">
-                        <img id="image" :src="collect.image || DEFAULT_PLAYLIST_COVER" alt="收藏图片" />
+                        <img id="image" :src="playlistCover(collect)" alt="收藏图片" />
                         <div class="mask">
                             <img class="play-icon" src="/play.png" alt="播放" />
                         </div>
                         <div class="upload-action" @click.stop="handleUploadCover(collect)">
-                            <el-button size="mini">上传封面</el-button>
+                                <el-button size="mini">上传封面</el-button>
                         </div>
                     </div>
                     <!-- 歌单名称编辑区域 -->
@@ -42,9 +42,9 @@
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                        <div class="mu-num">{{ collect.musicCount }}首</div>
-                        <el-button type="danger" size="mini" @click.stop="removePlaylist(collect.id)">删除</el-button>
-                    </div>
+                            <div class="mu-num">{{ playlistCount(collect) }}首</div>
+                            <el-button class="delete-btn" type="danger" size="small" @click.stop="removePlaylist(collect.id)">删除</el-button>
+                        </div>
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@ import { useAuthStore } from '../store/auth';
 import { type UserCollectList } from '../types/api';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getUserPlaylists, deletePlaylist, updatePlaylistList, getMusicList, createPlaylist, uploadFile } from '../services/api';
+import { getUserPlaylists, deletePlaylist, updatePlaylistList, getMusicList, createPlaylist, uploadFile, getPlaylistDetail } from '../services/api';
 
 const router = useRouter();
 const globalStore = useGlobalStore();
@@ -94,6 +94,10 @@ const nameInputRef = ref();
 interface EditableCollectList extends UserCollectList {
   isEditing: boolean;
   editingName: string;
+  // 一些后端实现可能返回不同命名的封面字段，声明为可选以兼容多种情况
+  cover?: string;
+  coverUrl?: string;
+  imageUrl?: string;
 }
 
 // 响应式歌单数据
@@ -178,6 +182,8 @@ const loadCollectList = async () => {
             const list = resp.data.data?.records || resp.data.data || []
             collectList.value = list.map((item: any) => ({ ...item, isEditing: false, editingName: item.name || '' }))
             globalStore.setUserPlaylists(list)
+            // 若后端返回的每个歌单没有 musics 明细，但有 musicCount，则尝试补充首曲封面以作歌单封面
+            fillMissingCovers()
         } else {
             ElMessage.error(resp?.data?.msg || '获取歌单失败')
             collectList.value = []
@@ -188,6 +194,70 @@ const loadCollectList = async () => {
         collectList.value = []
     }
 };
+
+/** 辅助：返回歌单歌曲数量的通用方法（兼容多种后端字段） */
+const playlistCount = (pl: any) => {
+    if (!pl) return 0
+    const count = pl.musicCount ?? pl.trackCount ?? pl.count
+    if (typeof count === 'number') return count
+    if (Array.isArray(pl.musics)) return pl.musics.length
+    if (Array.isArray(pl.list)) return pl.list.length
+    if (Array.isArray(pl.records)) return pl.records.length
+    return 0
+}
+
+/** 辅助：返回歌单封面（优先使用已有 image 字段，否则返回默认占位） */
+const playlistCover = (pl: any) => {
+    return pl?.image || pl?.cover || pl?.coverUrl || pl?.imageUrl || DEFAULT_PLAYLIST_COVER
+}
+
+/** 异步补充封面：当歌单没有封面但存在歌曲时，尝试获取歌单详情并使用首曲的封面 */
+async function fillMissingCovers() {
+    try {
+        for (const pl of collectList.value) {
+            try {
+                const hasCover = !!(pl.image || pl.cover || pl.coverUrl || pl.imageUrl)
+                const count = playlistCount(pl)
+                if (!hasCover && count > 0 && pl.id) {
+                    console.debug('[CollectList] 尝试补充封面，playlist id=', pl.id)
+                    const detailResp = await getPlaylistDetail(pl.id)
+                    const detail = detailResp?.data?.data ?? detailResp?.data ?? {}
+                    const mus = detail.musics ?? detail.records ?? detail.list ?? detail.musicIds ?? []
+                    if (!mus || (Array.isArray(mus) && mus.length === 0)) {
+                        console.debug('[CollectList] 歌单详情未返回 musics/list/records，跳过', pl.id)
+                        continue
+                    }
+
+                    const first = mus[0]
+                    let img: string | null = null
+                    if (first && typeof first === 'object') {
+                        img = first.image || first.cover || null
+                    } else if (first) {
+                        try {
+                            const songResp = await getMusicList({ pageNum: 1, pageSize: 1, id: first })
+                            const records = songResp?.data?.data?.records ?? songResp?.data?.data ?? songResp?.data ?? []
+                            const song = Array.isArray(records) && records.length ? records[0] : null
+                            img = song?.image || song?.cover || null
+                        } catch (e) {
+                            console.warn('[CollectList] 获取首曲详情失败', first, e)
+                        }
+                    }
+
+                    if (img) {
+                        pl.image = img
+                        console.debug('[CollectList] 补充到歌单封面', pl.id, img)
+                    } else {
+                        console.debug('[CollectList] 未找到可用封面 for', pl.id)
+                    }
+                }
+            } catch (err) {
+                console.warn('fillMissingCovers failed for', pl?.id, err)
+            }
+        }
+    } catch (e) {
+        console.error('fillMissingCovers error', e)
+    }
+}
 
 /**
  * 使用静态数据作为回退方案
@@ -522,6 +592,23 @@ const savePlaylistName = async (collect: EditableCollectList) => {
 .collect-name-edit .el-input__inner {
     font-size: 14px;
     font-weight: 500;
+}
+
+/* 优化删除按钮样式 */
+.delete-btn {
+    --danger-color: #e56a6a;
+    color: var(--danger-color);
+    border-color: rgba(229,106,106,0.12) !important;
+    background: transparent !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+}
+.delete-btn:hover {
+    background: rgba(229,106,106,0.06) !important;
+}
+.delete-btn:active {
+    background: rgba(229,106,106,0.10) !important;
 }
 
 /* 响应式调整 */

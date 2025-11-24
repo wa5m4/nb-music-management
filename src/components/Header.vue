@@ -50,7 +50,12 @@ onMounted(() => {
 // handle search button click
 const search = () => {
     if (state2.value.trim() !== '') {
-        router.push(`/search/${state2.value}`)
+        // 仅通过路由导航到 Home 并带上查询参数，Home 会在 mount/route-change 时读取并执行搜索
+        try {
+            router.push({ name: 'home', query: { q: state2.value } })
+        } catch (e) {
+            console.warn('navigate to home failed', e)
+        }
     }
 }
 

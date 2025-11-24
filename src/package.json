@@ -1,0 +1,8 @@
+{
+  "name": "nb-music-management-src-proxy",
+  "private": true,
+  "scripts": {
+    "dev": "cd .. && npm run dev",
+    "start": "npm run dev"
+  }
+}

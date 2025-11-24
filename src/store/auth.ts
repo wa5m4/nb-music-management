@@ -3,7 +3,7 @@ import { ref,computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios, { type AxiosResponse } from 'axios'
 import api, { setAdminToken, clearAdminToken } from '../services/api'
-import {type ApiResponse, type LoginCredentials, type RegisterData, type User,type CaptchaResponse, type codeSendResponce } from '../types/index'
+import {type ApiResponse, type LoginCredentials, type RegisterData, type User,type CaptchaResponse } from '../types/index'
 
 export const useAuthStore = defineStore('auth', () => {
     // 状态 - 基于自定义接口类型
@@ -147,6 +147,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 登出方法
     const logout = (): void => {
+        // 先尝试关闭全局 websocket（若存在）以断开服务端连接
+        try { if ((window as any).__adWs && (window as any).__adWs.close) { (window as any).__adWs.close(); } } catch (e) { /* ignore */ }
         token.value = null
         user.value = null
         localStorage.removeItem('token')
@@ -208,8 +210,19 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             }
         }
-        // 如果之前处于管理员模式，确保请求头包含管理员 token
-        if (isAdmin.value) {
+        // 如果之前处于管理员模式，不自动在初始化时注入管理员 token
+        //（避免仅删除 localStorage 中的 token 后被 isAdmin 标记自动恢复）。
+        // 只有在明确的管理员登录流程中调用 setAdmin(true) 才会注入管理员 token。
+        if (isAdmin.value && !token.value) {
+            // inconsistent state: has isAdmin flag but no token — clear the flag
+            try {
+                isAdmin.value = false
+                localStorage.removeItem('isAdmin')
+            } catch (e) {
+                console.debug('清理 isAdmin 标记失败', e)
+            }
+        } else if (isAdmin.value && token.value) {
+            // 如果确实存在 token 并且是管理员标记，确保请求头包含管理员 token
             try {
                 setAdmin(!!isAdmin.value)
             } catch (e) {

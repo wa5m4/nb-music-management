@@ -1,5 +1,7 @@
 <template>
   <div class="recommend-container">
+    <!-- 搜索由 Header 组件触发（监听全局 app-search 事件），此处不再显示输入控件 -->
+
     <!-- 加载状态 -->
     <div v-if="loading" class="loading">
       <div class="loading-spinner"></div>
@@ -8,6 +10,36 @@
 
     <!-- 推荐内容 -->
     <div v-else class="recommend-content">
+      <!-- 搜索结果 -->
+      <div class="search-results" v-if="searchResults && searchResults.length">
+        <h2 class="section-title">搜索结果</h2>
+        <div class="music-list">
+          <div class="list-header">
+            <span class="index-col">#</span>
+            <span class="title-col">标题</span>
+            <span class="artist-col">歌手</span>
+            <span class="type-col">类型</span>
+            <span class="duration-col">时长</span>
+            <span class="action-col">操作</span>
+          </div>
+          <div class="list-item" v-for="(song, index) in searchResults" :key="song.id">
+            <span class="index-col">{{ index + 1 }}</span>
+            <div class="title-col song-info">
+              <img :src="song.image || '/default-cover.png'" :alt="displayTitle(song)" class="song-cover" />
+              <div class="text"><h3>{{ displayTitle(song) }}</h3></div>
+            </div>
+            <span class="artist-col">{{ displayAuthor(song) }}</span>
+            <span class="type-col">{{ song.type }}</span>
+            <span class="duration-col">{{ formatDuration(song.duration) }}</span>
+            <div class="action-col">
+              <button class="play-btn" @click="handlePlaySong(song, searchResults)" title="播放">▶</button>
+              <button :class="['favorite-btn', { favorited: isFavorited(song) }]" @click.stop.prevent="openAddToPlaylist(song)" title="加入歌单">♡</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 非搜索时显示的推荐内容（searchResults 非空时隐藏） -->
+      <div v-if="!searchResults || !searchResults.length">
       <!-- 第一部分：轮播图 -->
       <div class="carousel-section">
         <h2 class="section-title">热门推荐</h2>
@@ -21,8 +53,8 @@
               >
                 <img :src="song.image" :alt="song.name" class="carousel-image">
                 <div class="carousel-info">
-                  <h3 class="song-title">{{ song.name }}</h3>
-                  <p class="song-artist">{{ song.author }}</p>
+                  <h3 class="song-title">{{ displayTitle(song) }}</h3>
+                  <p class="song-artist">{{ displayAuthor(song) }}</p>
                 </div>
               </div>
             </div>
@@ -48,9 +80,9 @@
           >
             <div class="horizontal-grid-content" @click="handlePlaySong(song, featured)">
               <img :src="song.image" :alt="song.name" class="horizontal-grid-image">
-              <div class="horizontal-grid-overlay">
-                <h4>{{ song.name }}</h4>
-                <p>{{ song.author }}</p>
+                <div class="horizontal-grid-overlay">
+                <h4>{{ displayTitle(song) }}</h4>
+                <p>{{ displayAuthor(song) }}</p>
                 <div class="play-icon">▶</div>
               </div>
             </div>
@@ -80,11 +112,11 @@
                 <div class="play-icon">▶</div>
               </div>
             </div>
-            <div class="item-info">
-              <h3 class="item-title">{{ song.name }}</h3>
-              <p class="item-artist">{{ song.author }}</p>
+                <div class="item-info">
+              <h3 class="item-title">{{ displayTitle(song) }}</h3>
+              <p class="item-artist">{{ displayAuthor(song) }}</p>
             </div>
-                <button class="favorite-btn" @click.stop="handleAddToFavorite(song)" title="收藏">
+                <button :class="['favorite-btn', { favorited: isFavorited(song) }]" @click.stop.prevent="openAddToPlaylist(song)" title="加入歌单">
                   ♡
                 </button>
               </div>
@@ -104,10 +136,10 @@
                   </div>
               </div>
               <div class="item-info">
-                <h3 class="item-title">{{ song.name }}</h3>
-                <p class="item-artist">{{ song.author }}</p>
+                <h3 class="item-title">{{ displayTitle(song) }}</h3>
+                <p class="item-artist">{{ displayAuthor(song) }}</p>
               </div>
-            <button class="favorite-btn" @click.stop="handleAddToFavorite(song)" title="收藏">
+            <button :class="['favorite-btn', { favorited: isFavorited(song) }]" @click.stop.prevent="openAddToPlaylist(song)" title="加入歌单">
               ♡
             </button>
             </div>
@@ -137,53 +169,62 @@
             <div class="title-col song-info">
               <img :src="song.image" :alt="song.name" class="song-cover">
               <div class="text">
-                <h3>{{ song.name }}</h3>
+                <h3>{{ displayTitle(song) }}</h3>
               </div>
             </div>
-            <span class="artist-col">{{ song.author }}</span>
+            <span class="artist-col">{{ displayAuthor(song) }}</span>
             <span class="type-col">{{ song.type }}</span>
             <span class="duration-col">{{ formatDuration(song.duration) }}</span>
             <div class="action-col">
               <button class="play-btn" @click="handlePlaySong(song, playlistRecommend)" title="播放">
                 ▶
               </button>
-              <button class="favorite-btn" @click="handleAddToFavorite(song)" title="收藏">
+              <button :class="['favorite-btn', { favorited: isFavorited(song) }]" @click.stop.prevent="openAddToPlaylist(song)" title="加入歌单">
                 ♡
               </button>
             </div>
           </div>
         </div>
       </div>
-      <!-- 新增部分：我创建的歌单（用户） -->
-      <div class="list-section" v-if="myPlaylists && myPlaylists.length">
-        <h2 class="section-title">我创建的歌单</h2>
-        <div class="playlists-grid" style="margin-top:12px;">
-          <div class="grid-inner" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px;">
-            <div v-for="pl in myPlaylists" :key="pl.id">
-              <el-card class="playlist-card" shadow="hover">
-                <div style="height:140px; overflow:hidden; border-radius:8px;">
-                  <img :src="pl.image || pl.cover || '/default-cover.png'" style="width:100%; height:100%; object-fit:cover;" />
-                </div>
-                <div style="padding:12px;">
-                  <div style="font-weight:600;">{{ pl.name || pl.title }}</div>
-                  <div style="color:#888; font-size:12px; margin-top:6px;">{{ pl.musicCount ?? pl.trackCount ?? 0 }} 首</div>
-                </div>
-              </el-card>
-            </div>
-          </div>
-        </div>
+      <!-- 我创建的歌单：已移至 Profile 页面 -->
       </div>
     </div>
 
     <!-- 音频播放器组件 -->
     <AudioPlayer ref="audioPlayerRef" />
+    
+      <!-- 加入歌单对话框 -->
+      <el-dialog v-model="showAddDialog" title="选择要加入的歌单" width="520px">
+        <div style="max-height:320px; overflow:auto;">
+          <div v-if="userPlaylists && userPlaylists.length">
+            <div v-for="pl in userPlaylists" :key="pl.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 6px;border-bottom:1px solid #f5f5f5;">
+              <div style="display:flex;align-items:center;gap:12px;cursor:pointer" @click="() => addSongToPlaylist(pl)">
+                <img :src="pl.image || pl.cover || '/default-cover.png'" style="width:48px;height:48px;object-fit:cover;border-radius:6px;" />
+                <div>
+                  <div style="font-weight:600">{{ pl.name }}</div>
+                  <div style="color:#888;font-size:12px">{{ pl.musicCount || (pl.musics && pl.musics.length) || 0 }}首</div>
+                </div>
+              </div>
+              <div>
+                <el-button size="small" type="primary" :loading="adding" @click="() => addSongToPlaylist(pl)">加入</el-button>
+              </div>
+            </div>
+          </div>
+          <div v-else style="padding:12px;color:#666">未找到歌单，您可以到“我的歌单”新建歌单后再添加。</div>
+        </div>
+        <template #footer>
+          <el-button @click="showAddDialog = false">关闭</el-button>
+        </template>
+      </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
-import { getMusicList, getUserPlaylists } from '../services/api'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '../store/auth'
+import { getUserPlaylists, getPlaylistDetail, updatePlaylistList } from '../services/api'
+import { useRoute } from 'vue-router'
+import { getMusicList } from '../services/api'
 import type { MusicDetail } from '../types/api'
 import { ElMessage } from 'element-plus'
 
@@ -235,14 +276,218 @@ const dailyRecommend = ref<MusicDetail[]>([]) // 每日推荐（6条）
 const playlistRecommend = ref<MusicDetail[]>([]) // 推荐歌单（6条）
 const loading = ref(false)
 const refreshing = ref(false)
-// 用户创建的歌单
-const myPlaylists = ref<any[]>([])
+// 用户创建的歌单（已移除，移动到 Profile 页面）
+
+// 搜索相关
+const searchQuery = ref('')
+const searchResults = ref<MusicDetail[]>([])
+
+// 加入歌单对话框相关
+const showAddDialog = ref(false)
+const currentSongToAdd = ref<any>(null)
+const userPlaylists = ref<any[]>([])
+const adding = ref(false)
+
+// 收藏状态（已加入歌单视为已收藏）
+const favoriteIds = ref<Set<any>>(new Set())
+
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem('favorites')
+    if (raw) {
+      const arr = JSON.parse(raw)
+      if (Array.isArray(arr)) favoriteIds.value = new Set(arr)
+    }
+  } catch (e) { favoriteIds.value = new Set() }
+}
+
+function saveFavorites() {
+  try {
+    const arr = Array.from(favoriteIds.value)
+    localStorage.setItem('favorites', JSON.stringify(arr))
+  } catch (e) { /* ignore */ }
+}
+
+function isFavorited(song: any) {
+  if (!song) return false
+  const id = song.id ?? song._id ?? song
+  return favoriteIds.value.has(id)
+}
+
+const auth = useAuthStore()
+
+const openAddToPlaylist = async (song: any) => {
+  if (!auth.isLogin && !auth.user) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  currentSongToAdd.value = song
+  try {
+    // 尝试用 auth.user.id，回退到 localStorage
+    let userId: any = auth.user?.id
+    if (!userId) {
+      try {
+        const raw = localStorage.getItem('user') || localStorage.getItem('userInfo')
+        if (raw) userId = JSON.parse(raw)?.id
+      } catch (e) {
+        // ignore
+      }
+    }
+    if (!userId) {
+      ElMessage.warning('无法获取用户 ID，无法加载歌单')
+      return
+    }
+    const resp = await getUserPlaylists(userId)
+    const list = resp?.data?.data?.records ?? resp?.data?.data ?? resp?.data ?? []
+    userPlaylists.value = Array.isArray(list) ? list : []
+    showAddDialog.value = true
+  } catch (err) {
+    console.error('加载用户歌单失败', err)
+    ElMessage.error('加载歌单失败')
+  }
+}
+
+const addSongToPlaylist = async (playlist: any) => {
+  if (!currentSongToAdd.value) return
+  if (!playlist || !playlist.id) {
+    ElMessage.error('无效的歌单')
+    return
+  }
+  adding.value = true
+  try {
+    const songId = currentSongToAdd.value.id
+    // helper: fetch existing ids
+    const fetchIds = async () => {
+      const r = await getPlaylistDetail(playlist.id)
+      const d = r?.data?.data ?? r?.data ?? {}
+      const musics = Array.isArray(d.musics) ? d.musics : (Array.isArray(d.records) ? d.records : (Array.isArray(d.list) ? d.list : (Array.isArray(d.musicIds) ? d.musicIds : [])))
+      return Array.isArray(musics) ? musics.map((m: any) => (m && (m.id ?? m)) ).filter(Boolean) : []
+    }
+
+    let existingIds = await fetchIds()
+    if (existingIds.includes(songId)) {
+      ElMessage.info('该歌曲已在歌单中')
+      showAddDialog.value = false
+      return
+    }
+
+    const newIds = Array.from(new Set(existingIds.concat([songId])))
+
+    // 尝试多种可能的后端期望格式
+    // 根据接口文档，优先使用 { id, musics: [integer] }
+    // 有些后端实现可能要求同时提供歌单的其它字段（name/image），此处一并携带以提高兼容性
+    const tryPayloads: any[] = [
+      // 首选：符合文档的整数数组 + 同时传入 musicCount
+      { id: playlist.id, name: playlist.name, image: playlist.image, musics: newIds, musicCount: newIds.length },
+      { id: playlist.id, name: playlist.name, image: playlist.image, musicCount: newIds.length, musicIds: newIds },
+      { id: playlist.id, name: playlist.name, image: playlist.image, musicCount: newIds.length, musicIds: JSON.stringify(newIds) },
+      { id: playlist.id, name: playlist.name, image: playlist.image, musicCount: newIds.length, musicIds: newIds.join(',') },
+      { id: playlist.id, name: playlist.name, image: playlist.image, musicCount: newIds.length, musics: newIds.map((id: any) => ({ id })) }
+    ]
+
+    let success = false
+    for (const payload of tryPayloads) {
+      try {
+        console.debug('[Home] 尝试用 payload 更新歌单：', payload)
+        const upd = await updatePlaylistList(payload)
+        console.debug('[Home] updatePlaylistList 返回：', upd?.data)
+        // 如果接口返回明确的错误 msg，则跳过后续验证
+        if (upd?.data && (upd.data.code === 500 || upd.data.code === 400)) {
+          console.warn('[Home] 后端返回错误 code:', upd.data.code, upd.data.msg)
+          continue
+        }
+        // 重新拉取歌单并验证是否包含 songId
+        const latestIds = await fetchIds()
+        if (latestIds.includes(songId)) {
+          success = true
+          break
+        }
+      } catch (e) {
+        console.warn('[Home] update attempt failed', e)
+        // try next payload
+      }
+    }
+
+    if (success) {
+      ElMessage.success('已添加到歌单')
+      // 标记为已收藏（视觉反馈）
+      try {
+        const sid = currentSongToAdd.value?.id
+        if (sid) {
+          favoriteIds.value.add(sid)
+          saveFavorites()
+        }
+      } catch (e) { /* ignore */ }
+      showAddDialog.value = false
+    } else {
+      ElMessage.error('添加失败（后端未保存变更）')
+    }
+  } catch (err) {
+    console.error('添加歌曲到歌单失败', err)
+    ElMessage.error('添加失败')
+  } finally {
+    adding.value = false
+  }
+}
+
+/** 搜索歌曲并展示结果
+ *  逻辑：先以多字段一次性请求（提升命中率），若无结果则按单字段顺序重试（name->author->singer->keyword->title）
+ */
+const searchSongs = async () => {
+  try {
+    if (!searchQuery.value || !searchQuery.value.trim()) {
+      searchResults.value = []
+      return
+    }
+    const q = searchQuery.value.trim()
+
+    const normalize = (resp: any) => {
+      const top = resp?.data ?? {}
+      const inner = top.data ?? top
+      const records = Array.isArray(inner.records) ? inner.records : (Array.isArray(inner.list) ? inner.list : (Array.isArray(inner) ? inner : []))
+      return Array.isArray(records) ? records : []
+    }
+
+    // 首次尝试：一次性传多个可能的字段，某些后端会 OR/模糊匹配
+    const paramsAll: Record<string, any> = { pageNum: 1, pageSize: 50, name: q, author: q, singer: q, keyword: q }
+    let resp = await getMusicList(paramsAll)
+    let records = normalize(resp)
+
+    // 如果没有结果，按单字段顺序重试以兼容只支持单个查询字段的后端
+    const fallbackKeys = ['name', 'author', 'singer', 'keyword', 'title']
+    for (const key of fallbackKeys) {
+      if (records && records.length) break
+      const p: Record<string, any> = { pageNum: 1, pageSize: 50 }
+      p[key] = q
+      try {
+        resp = await getMusicList(p)
+        records = normalize(resp)
+      } catch (err) {
+        console.warn('fallback search failed for', key, err)
+        records = []
+      }
+    }
+
+    searchResults.value = records || []
+    if (!searchResults.value.length) {
+      ElMessage.info('未找到匹配歌曲')
+    }
+  } catch (e) {
+    console.error('searchSongs failed', e)
+    ElMessage.error('搜索失败')
+    searchResults.value = []
+  }
+}
+
+// clearSearch 已移除，搜索清理通过接收空查询或由页面交互触发
 
 // 轮播图当前索引
 const carouselIndex = ref(0)
 
 // 音频播放器引用
 const audioPlayerRef = ref()
+
+// 路由已移除
 
 // 已移除 fetchRandomRecords：使用 fetchEnoughRecords 保证数量与去重逻辑
 
@@ -414,9 +659,8 @@ const handlePlaySong = (song: MusicDetail, list?: MusicDetail[]) => {
  * 添加到收藏
  */
 const handleAddToFavorite = (song: MusicDetail) => {
-  ElMessage.success(`已添加到收藏: ${song.name}`)
-  // 这里可以调用收藏API
-  console.log('添加到收藏:', song)
+  // 统一使用加入歌单的对话框流程以保持行为一致
+  openAddToPlaylist(song)
 }
 
 /**
@@ -437,54 +681,77 @@ const formatDuration = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+/**
+ * 解析歌曲名称格式：如果 name 包含 " - "，则视为 "歌手 - 歌名"
+ * 返回 { title, author }
+ */
+const parseSongLabel = (song: any) => {
+  const raw = (song && (song.name ?? '')) || ''
+  if (typeof raw === 'string' && raw.includes(' - ')) {
+    const parts = raw.split(' - ')
+    const author = parts[0].trim()
+    const title = parts.slice(1).join(' - ').trim()
+    return { title: title || raw, author: author }
+  }
+  return { title: raw || (song && song.title) || '', author: (song && song.author) || '' }
+}
+
+const displayTitle = (song: any) => parseSongLabel(song).title
+const displayAuthor = (song: any) => parseSongLabel(song).author
+
 // 生命周期
 onMounted(() => {
   fetchRandomMusic()
   startCarousel()
-  fetchMyPlaylists()
+  loadFavorites()
+  // 监听来自 Header 的全局搜索事件
+  const handler = (e: any) => {
+    try {
+      const q = String(e?.detail || '')
+      if (q) {
+        searchQuery.value = q
+        searchSongs()
+      }
+    } catch (err) {
+      console.error('handle app-search failed', err)
+    }
+  }
+  window.addEventListener('app-search', handler)
+  // 组件卸载时移除监听
+  onUnmounted(() => window.removeEventListener('app-search', handler))
+
+  // 如果路由中带有查询参数 q，则以 q 执行一次搜索（支持从 Header 跳转过来）
+  const route = useRoute()
+  try {
+    const initialQ = String(route.query.q || '')
+    if (initialQ && initialQ.trim()) {
+      searchQuery.value = initialQ
+      searchSongs()
+    }
+  } catch (err) {
+    console.warn('init route query search failed', err)
+  }
+
+  // 监听路由 query.q 的变化，切换搜索/清空结果
+  watch(() => route.query.q, (newQ) => {
+    try {
+      const q = String(newQ || '')
+      if (q && q.trim()) {
+        searchQuery.value = q
+        searchSongs()
+      } else {
+        searchQuery.value = ''
+        searchResults.value = []
+      }
+    } catch (err) {
+      console.error('route q watch handler failed', err)
+    }
+  })
 })
 
-/** 获取当前用户创建的歌单并显示在首页 */
-async function fetchMyPlaylists() {
-  try {
-    const auth = useAuthStore()
-    let userId: any = null
-    if (auth && auth.user && (auth.user as any).id) {
-      userId = (auth.user as any).id
-    } else {
-      // 优先检查 localStorage 中常见 key
-      const raw = localStorage.getItem('user') || localStorage.getItem('userInfo')
-      if (raw) {
-        try { userId = JSON.parse(raw)?.id } catch {}
-      }
-    }
-    // 若没有，再尝试从 token 解码
-    if (!userId) {
-      const token = localStorage.getItem('token')
-      if (token) {
-        try {
-          const parts = token.split('.')
-          if (parts.length >= 2) {
-            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-            userId = payload?.id ?? payload?.userId ?? payload?.sub ?? payload?.uid ?? null
-          }
-        } catch (e) {
-          console.warn('decode token failed', e)
-        }
-      }
-    }
-    if (!userId) return
-    // 调试：打印候选 id 源
-    console.log('[debug] Home fetch candidate ids -> auth.user.id=', auth?.user?.id, 'localStorage user id=', JSON.parse(localStorage.getItem('user') || localStorage.getItem('userInfo') || 'null')?.id)
-    const resp = await getUserPlaylists(userId)
-    if (resp?.data && (resp.data.code === 200 || resp.data.code === 0)) {
-      const list = resp.data.data?.records || resp.data.data || []
-      myPlaylists.value = Array.isArray(list) ? list : []
-    }
-  } catch (e) {
-    console.error('fetchMyPlaylists failed', e)
-  }
-}
+// 已将“我创建的歌单”交给 Profile 页面处理
+
+// openPlaylist 已移除（歌单跳转由 Profile 页面处理）
 </script>
 
 <style scoped>
@@ -493,6 +760,8 @@ async function fetchMyPlaylists() {
   max-width: 1200px;
   margin: 0 auto;
 }
+
+/* Header 中已有搜索控件；Home 不再显示单独的搜索输入 */
 
 .loading {
   display: flex;
@@ -842,6 +1111,12 @@ async function fetchMyPlaylists() {
   background: #ff6b6b;
   color: white;
   border-color: #ff6b6b;
+}
+/* 已收藏样式 */
+.favorite-btn.favorited {
+  background: #ff4d4f;
+  color: white;
+  border-color: #ff4d4f;
 }
 /* 音乐列表样式 */
 .list-section {

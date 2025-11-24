@@ -17,7 +17,7 @@
           <img :src="userAvatar" alt="用户头像" class="user-avatar">
           <span class="username">{{ username }}</span>
           <span class="song-count">歌曲 {{ currentPlaylist.musicCount || 0 }}</span>
-          <span class="create-time">创建时间 {{ formatDate(currentPlaylist.create_time) }}</span>
+          <span class="create-time">创建时间 {{ formatDate((currentPlaylist as any).createTime || (currentPlaylist as any).create_time) }}</span>
         </div>
         <div class="actions">
           <!-- 播放全部按钮：Element组件 + 浅蓝色样式 -->
@@ -121,6 +121,7 @@ import { CaretRight, Download } from '@element-plus/icons-vue';
 import { onMounted, watch } from 'vue';
 import { uploadFile, getPlaylistDetail, updatePlaylistList, getMusicList, createPlaylist } from '../services/api';
 import { useGlobalStore } from '../store/index';
+import { useAuthStore } from '../store/auth';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { MusicListDetail, MusicDetail } from '../types/api';
@@ -131,6 +132,7 @@ import AudioPlayer from '../components/AudioPlayer.vue';
 const route = useRoute();
 const router = useRouter();
 const globalStore = useGlobalStore();
+const authStore = useAuthStore();
 
 // ========== 响应式数据 ==========
 const isHovering = ref(false);
@@ -223,14 +225,30 @@ const formatDuration = (seconds: number): string => {
  * @param dateString 日期字符串
  * @returns 格式化后的日期字符串
  */
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '未知时间';
-  try {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
-  } catch {
-    return dateString;
+  const s = String(dateString).trim();
+  // 常见后端格式："YYYY-MM-DD" 或 "YYYY-MM-DD HH:mm" 或带秒数
+  const simpleRe = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/;
+  if (simpleRe.test(s)) {
+    // 服务器已经返回友好的格式，直接返回（保持原样，包含时间部分）
+    return s;
   }
+
+  // 尝试使用 Date.parse 解析其他格式
+  const ts = Date.parse(s);
+  if (!isNaN(ts)) {
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day} ${hh}:${mm}`;
+  }
+
+  // 回退：原样返回字符串
+  return s;
 };
 
 // ========== 数据加载函数 ==========
@@ -308,9 +326,28 @@ const loadPageData = async () => {
     if (musicListData) {
       // 更新当前歌单数据
       currentPlaylist.value = musicListData;
+      // 如果歌单自身没有封面，尝试使用第一首歌的封面作为回退显示
+      try {
+        if ((!currentPlaylist.value.image || String(currentPlaylist.value.image).trim() === '') && Array.isArray(currentPlaylist.value.musics) && currentPlaylist.value.musics.length > 0) {
+          const firstImg = (currentPlaylist.value.musics[0] as any)?.image || (currentPlaylist.value.musics[0] as any)?.cover || ''
+          if (firstImg) currentPlaylist.value.image = firstImg
+        }
+      } catch (e) { /* ignore fallback */ }
       
       // 更新用户信息显示
-      if (globalStore.userInfo) {
+      // 优先使用 auth store 的用户信息（登录用户）
+      if (authStore && authStore.user) {
+        userAvatar.value = (authStore.user as any).avatar || userAvatar.value;
+        username.value = (authStore.user as any).username || username.value;
+      }
+      // 若接口返回了歌单创建者信息，则使用它覆盖显示
+      const creator = (musicListData as any).creator || (musicListData as any).user || (musicListData as any).owner
+      if (creator) {
+        userAvatar.value = creator.avatar || userAvatar.value
+        username.value = creator.username || creator.name || username.value
+      }
+      // 最后回退到 globalStore 中存储的 userInfo
+      if ((!userAvatar.value || !username.value) && globalStore.userInfo) {
         userAvatar.value = globalStore.userInfo.avatar || userAvatar.value;
         username.value = globalStore.userInfo.username || username.value;
       }
