@@ -204,7 +204,9 @@ const saveNewPlaylist = async () => {
   }
 }
 // ========== 音频播放相关状态 ==========
+// 在 template 中需有 <AudioPlayer ref="audioPlayerRef" /> 或在父组件中传入该 ref
 const audioPlayerRef = ref<InstanceType<typeof AudioPlayer> | null>(null);
+
 
 // ========== 工具函数 ==========
 

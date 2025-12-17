@@ -128,7 +128,7 @@ export default {
         const a = userInput.value
         userInput.value = ''
 
-        const response = await fetch('http://localhost:9527/ai/chat', {
+        const response = await fetch('http://192.168.95.146:9527/ai/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

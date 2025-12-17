@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
     // 优先使用环境变量，回退到开发时的默认地址（若需要请替换成你的后端地址）
-    baseURL:'http://localhost:9527',
+    baseURL:'http://192.168.95.146:9527',
     // 请求超时时间（毫秒）
     timeout: 10000,
     // 全局默认请求头，可在单次请求中覆盖
@@ -161,3 +161,40 @@ export function clearAdminToken() {
 export function createAd(data: { content: string; picture?: string; duration: number }) {
     return api.post('/td/create', data)
 }
+
+
+const request = api;
+
+
+// ---------- 新增 API 函数（与后端接口约定） ----------
+
+export async function getMusicDetail(id: number) {
+  // 注意：本文件顶部已有 axios 实例变量名为 `api`（保持一致）
+  const res = await api.get(`/music/${id}`);
+  return res.data.data as import('../types/api').MusicDetail;
+}
+
+
+
+// ---------- 新增 API 函数（与后端接口约定） ----------
+
+
+export async function postComment(params: import('../types/api').CommentParams) {
+    const res = await api.post('/comment', params);
+    return res.data.data as import('../types/api').Comment;
+}
+
+
+export async function getCommentsByMusic(musicId: number) {
+  const res = await api.get('/comment/list', { params: { musicId } });
+  // 后端约定：res.data 为 ApiResponse<T>
+  return res.data.data as import('../types/api').Comment[];
+}
+
+
+
+export async function getCommentById(id: number) {
+  const res = await api.get('/comment', { params: { id } });
+  return res.data.data as import('../types/api').Comment;
+}
+

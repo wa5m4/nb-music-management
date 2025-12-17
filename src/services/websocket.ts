@@ -273,7 +273,7 @@ class WebSocketService {
     }
 
     // 构造函数
-    constructor(url: string = 'ws://localhost:9527/ws/pk') {
+    constructor(url: string = 'ws://192.168.95.146:9527/ws/pk') {
         this.url = url;
         this.initializeMessageHandlers();
     }

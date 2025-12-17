@@ -654,9 +654,11 @@ const refreshDailyRecommend = async () => {
 /**
  * 播放单首歌曲
  */
+  import { openMusicModal } from '../services/musicModal.ts'
 const handlePlaySong = (song: MusicDetail, list?: MusicDetail[]) => {
   const playList = Array.isArray(list) && list.length ? list : musicList.value
   const idx = (playList && playList.findIndex) ? playList.findIndex(s => s.id === song.id) : 0
+  openMusicModal(song.id); // 打开音乐详情弹窗
   if (audioPlayerRef.value) {
     audioPlayerRef.value.playSong(song, playList, idx >= 0 ? idx : 0)
     ElMessage.success(`开始播放: ${song.name} - ${song.author}`)

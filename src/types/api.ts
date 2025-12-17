@@ -81,6 +81,45 @@ export interface GetUserPlaylistsParams {
   id: number; // 用户ID
 }
 
+
+// 评论接口
+export interface Comment {
+  id: number;
+  musicId: number;
+  userId: number;
+  username: string;
+  userAvatar: string;
+  detail: string;
+  createTime: string;
+  status: number;
+  replyCommentIds: number[]; // 子评论 id 列表
+}
+
+export interface CommentList { 
+  comments: Comment[]; // 评论列表
+}
+
+export interface CommentParams {
+  musicId: number;
+  detail: string;
+  replyCommentId?: number;
+  status?: number;
+}
+
+// 多级评论展示接口（扩展Comment接口，用于前端展示）
+export interface CommentWithReplies extends Comment {
+  childComments?: CommentWithReplies[];
+  isExpanded?: boolean;
+}
+
+
+export interface CommentParams {
+  musicId: number;
+  detail: string;
+  replyCommentId?: number;
+  status?: number;
+}
+
 // ========== API 响应类型别名（可选，用于明确语义） ==========
 
 // 获取用户歌单列表响应
@@ -94,3 +133,14 @@ export type UploadFileResponse = UploadResponse;
 
 // 播放歌曲响应
 export type PlayMusicResponse = MusicDetail;
+
+
+// 获取评论列表响应
+export type GetCommentsResponse = Comment[];
+
+// 发表评论响应
+export type PostCommentResponse = Comment;
+
+// 获取评论详情响应（包含完整回复链）
+export type GetCommentDetailResponse = CommentWithReplies;
+
