@@ -1,0 +1,43 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 5090757 */
+  src: url('iconfont.woff2?t=1765937795125') format('woff2'),
+       url('iconfont.woff?t=1765937795125') format('woff'),
+       url('iconfont.ttf?t=1765937795125') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-home-g:before {
+  content: "\e646";
+}
+
+.icon-gedan:before {
+  content: "\e636";
+}
+
+.icon-24px:before {
+  content: "\e603";
+}
+
+.icon-tuijian:before {
+  content: "\e608";
+}
+
+.icon-aislogo:before {
+  content: "\e648";
+}
+
+.icon-icon_pk:before {
+  content: "\e632";
+}
+
+.icon-wode:before {
+  content: "\e60d";
+}
+

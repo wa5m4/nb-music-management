@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
     // 优先使用环境变量，回退到开发时的默认地址（若需要请替换成你的后端地址）
-    baseURL:'http://192.168.130.146:9527',
+    baseURL:'http://localhost:9527',
     // 请求超时时间（毫秒）
     timeout: 10000,
     // 全局默认请求头，可在单次请求中覆盖

@@ -16,6 +16,8 @@ import Profile from '../view/me/Profile.vue'
 import UserSettings from '../view/me/Settings.vue'
 import collectList from '../view/collectList.vue'
 import UploadView from '../view/upload.vue'
+import Chat from '../view/Chat.vue';
+import PKGame from '../components/PKGame.vue'
 
 const routes = [
   {
@@ -93,9 +95,19 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: '/chat',
+        component: Chat
+      },
+      {
         path: '',
         redirect: 'home'
-      }
+      },
+        {
+            path: 'pk',
+            name: 'pk',
+            component: PKGame,
+            meta: { requiresAuth: true }
+        }
     ]
   }
 ]

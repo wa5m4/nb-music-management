@@ -217,6 +217,9 @@
         </template>
       </el-dialog>
   </div>
+  <el-button type="primary" @click="goToPK">
+    🎮 进入听歌猜曲PK
+  </el-button>
 </template>
 
 <script lang="ts" setup>
@@ -227,6 +230,13 @@ import { useRoute } from 'vue-router'
 import { getMusicList } from '../services/api'
 import type { MusicDetail } from '../types/api'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const goToPK = () => {
+  router.push('/pk')
+}
 
 // 工具函数
 const shuffle = <T,>(arr: T[]) => {
