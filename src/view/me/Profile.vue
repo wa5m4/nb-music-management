@@ -25,6 +25,62 @@
       </div>
     </div>
 
+    <!-- 下部：个人画像统计区域 -->
+    <hr class="section-sep" />
+    <div class="profile-stats">
+      <div class="stats-inner">
+        <h3 style="margin-bottom:16px;">个人画像统计</h3>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-card class="stat-card">
+              <div class="card-title">喜爱歌曲</div>
+              <div class="pie-wrap">
+                <div class="pie-circle" :style="musicPieStyle">
+                  <div class="pie-center">
+                    <div class="center-number">{{ musicLoveTotal }}</div>
+                    <div class="center-label">次</div>
+                  </div>
+                </div>
+                <div class="legend">
+                  <div v-if="!musicLoveData.length" class="muted-text">暂无数据</div>
+                  <div v-for="item in musicLoveData" :key="item.label" class="legend-row">
+                    <span class="legend-dot" :style="{ background: item.color }"></span>
+                    <span class="legend-text">{{ item.label }}</span>
+                    <span class="legend-num">{{ item.value }}</span>
+                    <span class="legend-percent">{{ formatPercent(item.value, musicLoveTotal) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="figureLoading" class="loading-overlay">加载中...</div>
+            </el-card>
+          </el-col>
+          <el-col :span="12">
+            <el-card class="stat-card">
+              <div class="card-title">喜爱类型</div>
+              <div class="pie-wrap">
+                <div class="pie-circle" :style="typePieStyle">
+                  <div class="pie-center">
+                    <div class="center-number">{{ typeLoveTotal }}</div>
+                    <div class="center-label">次</div>
+                  </div>
+                </div>
+                <div class="legend">
+                  <div v-if="!typeLoveData.length" class="muted-text">暂无数据</div>
+                  <div v-for="item in typeLoveData" :key="item.label" class="legend-row">
+                    <span class="legend-dot" :style="{ background: item.color }"></span>
+                    <span class="legend-text">{{ item.label }}</span>
+                    <span class="legend-num">{{ item.value }}</span>
+                    <span class="legend-percent">{{ formatPercent(item.value, typeLoveTotal) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="figureLoading" class="loading-overlay">加载中...</div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
+    </div>
+
     <!-- 下部：歌单区域（可滚动并占满剩余空间） -->
     <hr class="section-sep" />
     <div class="profile-playlists">
@@ -59,17 +115,124 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useAuthStore } from '../../store/auth'
 import { useRouter } from 'vue-router'
 import { Setting } from '@element-plus/icons-vue'
-import { getUserPlaylists, getPlaylistDetail, getMusicList } from '../../services/api'
+import { getUserPlaylists, getPlaylistDetail, getMusicList, getUserFigureStatistic } from '../../services/api'
 import { ElMessage } from 'element-plus'
 
 const auth = useAuthStore()
 const router = useRouter()
 const user = auth.user
 const playlists = ref<any[]>([])
+const figureData = ref<any>(null)
+const figureLoading = ref(false)
+
+const musicLoveData = computed(() => {
+  // 兼容后端字段：musiclove / musicLove；数字可能是字符串
+  const data = (figureData.value?.musiclove ?? figureData.value?.musicLove ?? []) as any[]
+  const palette = ['#5B8FF9', '#61DDAA', '#F6BD16', '#F6903D', '#6E8BFF', '#7C89A1', '#A3AED0']
+  return data.map((item: any, idx: number) => ({
+    label: item?.name ?? item?.musicName ?? item?.title ?? '未知',
+    value: Number(item?.love_count ?? item?.count ?? item?.value ?? 0),
+    color: palette[idx % palette.length]
+  }))
+})
+
+const typeLoveData = computed(() => {
+  // 兼容后端字段：typeLove / typelove；数字可能是字符串
+  const data = (figureData.value?.typeLove ?? figureData.value?.typelove ?? []) as any[]
+  const palette = ['#5B8FF9', '#61DDAA', '#F6BD16', '#F6903D', '#6E8BFF', '#7C89A1', '#A3AED0']
+  return data.map((item: any, idx: number) => ({
+    label: item?.type ?? item?.name ?? '未知',
+    value: Number(item?.love_count ?? item?.count ?? item?.value ?? 0),
+    color: palette[idx % palette.length]
+  }))
+})
+
+const musicLoveTotal = computed(() => musicLoveData.value.reduce((sum: number, item: any) => sum + Number(item.value || 0), 0))
+const typeLoveTotal = computed(() => typeLoveData.value.reduce((sum: number, item: any) => sum + Number(item.value || 0), 0))
+
+const musicPieSegments = computed(() => {
+  const total = musicLoveTotal.value
+  if (!total) return []
+  let cursor = 0
+  return musicLoveData.value.map((item: any) => {
+    const angle = (item.value / total) * 360
+    const start = cursor
+    const end = start + angle
+    cursor = end
+    return `${item.color} ${start}deg ${end}deg`  
+  })
+})
+
+const musicPieStyle = computed(() => {
+  if (!musicPieSegments.value.length) return { background: '#f5f7fa' }
+  let maxDeg = 0
+  musicPieSegments.value.forEach((seg: string) => {
+    const parts = seg.split(' ')
+    const end = parseFloat(parts[2]) || 0
+    if (end > maxDeg) maxDeg = end
+  })
+  const gap = maxDeg < 360 ? `, #f5f7fa ${maxDeg}deg 360deg` : ''
+  return { background: `conic-gradient(${musicPieSegments.value.join(', ')}${gap})` }
+})
+
+const typePieSegments = computed(() => {
+  const total = typeLoveTotal.value
+  if (!total) return []
+  let cursor = 0
+  return typeLoveData.value.map((item: any) => {
+    const angle = (item.value / total) * 360
+    const start = cursor
+    const end = start + angle
+    cursor = end
+    return `${item.color} ${start}deg ${end}deg`
+  })
+})
+
+const typePieStyle = computed(() => {
+  if (!typePieSegments.value.length) return { background: '#f5f7fa' }
+  let maxDeg = 0
+  typePieSegments.value.forEach((seg: string) => {
+    const parts = seg.split(' ')
+    const end = parseFloat(parts[2]) || 0
+    if (end > maxDeg) maxDeg = end
+  })
+  const gap = maxDeg < 360 ? `, #f5f7fa ${maxDeg}deg 360deg` : ''
+  return { background: `conic-gradient(${typePieSegments.value.join(', ')}${gap})` }
+})
+
+function formatPercent(value: number, total: number) {
+  if (!total) return '0%'
+  return `${Math.round((value / total) * 100)}%`
+}
+
+async function fetchFigureStatistic() {
+  figureLoading.value = true
+  try {
+    console.log('[Profile] fetchFigureStatistic start')
+    const userId = (user as any)?.id
+    const resp = await getUserFigureStatistic(userId ? { userId } : undefined)
+    console.log('[Profile] getUserFigureStatistic resp', resp)
+    if (resp && (resp.code === 0 || resp.code === 200)) {
+      if (resp.data) {
+        figureData.value = resp.data
+        console.log('[Profile] figure data', resp.data)
+      } else {
+        ElMessage.warning('后端未返回个人画像数据')
+      }
+    } else {
+      ElMessage.error(resp?.msg || '获取个人画像失败')
+    }
+  } catch (err) {
+    console.error('fetch figure statistic failed', err)
+    ElMessage.error('获取个人画像请求失败')
+  } finally {
+    figureLoading.value = false
+  }
+}
 
 async function fetchPlaylists() {
     if (!user || !(user as any).id) return
@@ -191,6 +354,7 @@ function playlistCover(pl: any) {
 
 onMounted(() => {
     fetchPlaylists()
+    fetchFigureStatistic()
 })
 </script>
 
@@ -402,5 +566,150 @@ onMounted(() => {
   .playlist-cover .cover-img {
     height: 120px;
   }
+}
+
+/* 饼图统计样式 */
+.profile-stats {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.profile-stats h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  background: white;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.pie-wrap {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+}
+
+.pie-circle {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 10px white;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pie-center {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.center-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.center-label {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+  transition: color 0.3s ease;
+}
+
+.legend-row:hover {
+  color: #1f2937;
+}
+
+.legend-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.legend-text {
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.legend-num {
+  margin-left: auto;
+  font-weight: 600;
+  color: #374151;
+}
+
+.legend-percent {
+  min-width: 45px;
+  text-align: right;
+  color: #9ca3af;
+}
+
+.muted-text {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #6b7280;
+  border-radius: 8px;
+  z-index: 10;
 }
 </style>

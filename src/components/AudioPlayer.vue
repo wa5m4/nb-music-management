@@ -67,8 +67,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { MusicDetail } from '../types/api'
+import { useAuthStore } from '../store/auth'
+import { postMusicListen } from '../services/api'
 
 // ========== 播放器状态 ==========
+const auth = useAuthStore()
 const audioElement = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 const currentTime = ref(0)
@@ -135,6 +138,13 @@ const playSong = (song: MusicDetail, playlist: MusicDetail[] = [], index: number
   currentSong.value = song
   currentPlaylist.value = playlist
   currentIndex.value = index
+  // 异步记录用户听歌
+  try {
+    const uid = (auth.user as any)?.id
+    if (uid && song?.id != null) {
+      postMusicListen({ userId: Number(uid), musicId: Number(song.id) }).catch(() => {})
+    }
+  } catch (_) {}
   
   if (audioElement.value) {
     // 检查音频URL是否有效
@@ -408,6 +418,7 @@ defineExpose({
   background: #e0e0e0;
   border-radius: 2px;
   outline: none;
+  appearance: none;
   -webkit-appearance: none;
 }
 

@@ -13,8 +13,10 @@
           <el-form-item label="歌手"><el-input v-model="form.artist"></el-input></el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.type" placeholder="选择类型">
-            <el-option label="在线音乐" value="OnlineMusic" />
-            <el-option label="本地音乐" value="LocalMusic" />
+            <el-option label="流行音乐" value="FashionMusic" />
+            <el-option label="轻音乐" value="SoftMusic" />
+            <el-option label="说唱" value="RapMusic" />
+            <el-option label="其他音乐" value="OtherMusic" />
           </el-select>
         </el-form-item>
 

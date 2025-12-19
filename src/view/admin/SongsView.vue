@@ -42,7 +42,7 @@ async function fetchMusicList(page = currentPage.value, size = pageSize.value) {
       const raw = r.name ?? r.title ?? ''
       const fallbackArtist = r.author ?? r.artist ?? ''
       const parsed = parseSongDisplay(raw, fallbackArtist)
-      return { id: r.id, title: parsed.title, artist: parsed.artist || fallbackArtist, url: r.url, image: r.image, duration: r.duration }
+      return { id: r.id, title: parsed.title, artist: parsed.artist , type: r.type, url: r.url, image: r.image, duration: r.duration }
     })
     // 更新分页状态
     currentPage.value = page
@@ -57,7 +57,7 @@ const dialogVisible = ref(false)
 const uploadDialogVisible = ref(false)
 const batchDialogVisible = ref(false)
 const editing = ref(null)
-const form = reactive({ id: null, title: '', artist: '', url: '', type: 'OnlineMusic', duration: null, image: '' })
+const form = reactive({ id: null, title: '', artist: '', url: '', type: 'OtherMusic', duration: null, image: '' })
 const batchInput = ref('')
 const batchProgress = ref({ total: 0, success: 0, failed: 0 })
 const batchFiles = ref([])
@@ -74,7 +74,7 @@ function openAdd() {
   form.title = ''
   form.artist = ''
   form.url = ''
-  form.type = 'OnlineMusic'
+  form.type = 'OtherMusic'
   form.duration = null
   form.image = ''
   uploadDialogVisible.value = true
@@ -86,7 +86,7 @@ function openEdit(row) {
   form.title = row.title
   form.artist = row.artist
   form.url = row.url || ''
-  form.type = 'OnlineMusic'
+  form.type = row.type || 'OtherMusic'
   form.duration = null
   form.image = ''
   // 编辑已有歌曲直接打开新建/编辑对话框
@@ -349,6 +349,7 @@ function handlePageChange(page) {
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="title" label="歌曲名" />
       <el-table-column prop="artist" label="歌手" />
+      <el-table-column prop="type" label="类型" />
       <el-table-column label="操作" width="220">
         <template #default="{ row }">
           <el-button type="text" size="small" @click="() => openEdit(row)">编辑</el-button>
@@ -392,7 +393,12 @@ function handlePageChange(page) {
         <el-form-item label="歌曲名"><el-input v-model="form.title" placeholder="可留空，若提供 URL 后端可解析出名称"/></el-form-item>
         <el-form-item label="歌手"><el-input v-model="form.artist" /></el-form-item>
         <el-form-item v-if="!editing" label="隐藏 URL"><el-input v-model="form.url" placeholder="后端返回的文件 URL" readonly /></el-form-item>
-        <el-form-item label="类型"><el-select v-model="form.type" placeholder="选择类型"><el-option label="在线音乐" value="OnlineMusic" /><el-option label="本地音乐" value="LocalMusic" /><el-option label="图片/封面" value="Picture" /></el-select></el-form-item>
+        <el-form-item label="类型"><el-select v-model="form.type" placeholder="选择类型">
+          <el-option label="流行音乐" value="FashionMusic" />
+          <el-option label="摇滚音乐" value="RockMusic" />
+          <el-option label="轻音乐" value="SoftMusic" />
+          <el-option label="其他音乐" value="OtherMusic" />
+        </el-select></el-form-item>
         <el-form-item v-if="!editing" label="时长(秒)"><el-input v-model="form.duration" /></el-form-item>
         <el-form-item label="封面">
           <el-upload

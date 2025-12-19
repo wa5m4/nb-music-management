@@ -120,8 +120,9 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
-import { wsService, useWebSocket, WSMessageType, GameState, AnswerResult } from '../services/websocket'
+import { wsService, useWebSocket, WSMessageType, GameState} from '../services/websocket'
 import { getUserProfile } from '../services/api'
+import type { AnswerResult } from '../services/websocket';
 
 const router = useRouter()
 const authStore = useAuthStore()

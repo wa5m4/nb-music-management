@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
     // 优先使用环境变量，回退到开发时的默认地址（若需要请替换成你的后端地址）
-    baseURL:'http://192.168.95.146:9527',
+    baseURL:'http://192.168.177.146:9527',
     // 请求超时时间（毫秒）
     timeout: 10000,
     // 全局默认请求头，可在单次请求中覆盖
@@ -198,3 +198,56 @@ export async function getCommentById(id: number) {
   return res.data.data as import('../types/api').Comment;
 }
 
+// ====== 用户听歌记录 ======
+import type { MusicListenRequest, MusicListenResponse } from '../types/api'
+export function postMusicListen(payload: MusicListenRequest) {
+        return api.post<MusicListenResponse>('/music/listen', payload)
+}
+
+/**
+ * 获取用户数据统计
+ * @param token 请求头中的token（可选）
+ */
+
+import { type UserStatisticData, type UserStatisticResponse, type RequestStatisticResponse } from '../types/api';
+export const getUserStatistic = async (token?: string): Promise<UserStatisticResponse> => {
+    const response = await api.get<UserStatisticResponse>('/statistic/userStatistic', {
+        headers: {
+            ...(token ? { token } : {})
+        }
+    });
+    return response.data;
+};
+
+// 请求统计（接口访问等）
+export const getRequestStatistic = async (token?: string): Promise<RequestStatisticResponse> => {
+    const response = await api.get<RequestStatisticResponse>('/statistic/requestStatistic', {
+        headers: {
+            ...(token ? { token } : {})
+        }
+    });
+    return response.data;
+};
+
+/**
+ * 获取用户个人画像数据
+ * @param params 请求参数（userld 可选）
+ * @param token 请求头 token（可选）
+ */
+
+import { type UserFigureResponse } from '../types/api';
+export const getUserFigureStatistic = async (
+    params?: { userId?: number },
+    token?: string
+): Promise<UserFigureResponse> => {
+    const response = await api.get<UserFigureResponse>(
+        '/statistic/UserFigureStatistic',
+        {
+            params, // 拼接 Query 参数
+            headers: {
+                ...(token ? { token } : {}) // 携带 token（可选）
+            }
+        }
+    );
+    return response.data;
+};

@@ -120,6 +120,57 @@ export interface CommentParams {
   status?: number;
 }
 
+
+// 定义接口返回数据的类型（与后端响应结构对应）
+export interface UserStatisticData {
+  totalCount: number; // 总用户数
+  userCount: number; // 普通用户数
+  adminCount: number; // 管理员数
+  activeWeekUserCount: number; // 周活跃用户数
+  activeDayUserCount: number; // 日活跃用户数
+  touristCount: number; // 游客数
+}
+
+// 请求统计数据（用户请求分布等）
+export interface RequestStatisticData {
+  categoryCount: number; // 请求总量
+  categoryMap: Array<Record<string, any>>; // 分类统计
+  methodMap: Array<Record<string, any>>; // 方法统计
+  differentIpCount: number; // 不同 IP 数
+}
+
+
+// 定义 musiclove 子项类型
+export interface MusicLoveItem {
+  name: string;
+  love_count: number;
+}
+
+// 定义 typeLove 子项类型
+export interface TypeLoveItem {
+  love_count: number;
+  type: string;
+}
+
+// 定义接口返回的 data 类型
+export interface UserFigureData {
+  id: number;
+  username: string;
+  email: string;
+  status: string | null;
+  sex: string;
+  avatar: string;
+  musiclove: MusicLoveItem[];
+  typeLove: TypeLoveItem[];
+}
+
+// 定义接口整体响应类型
+export interface UserFigureResponse {
+  code: number;
+  msg?: string | null;
+  data?: UserFigureData | null;
+}
+
 // ========== API 响应类型别名（可选，用于明确语义） ==========
 
 // 获取用户歌单列表响应
@@ -144,3 +195,26 @@ export type PostCommentResponse = Comment;
 // 获取评论详情响应（包含完整回复链）
 export type GetCommentDetailResponse = CommentWithReplies;
 
+export interface UserStatisticResponse {
+  code: number;
+  msg?: string | null;
+  data?: UserStatisticData | null;
+}
+
+export interface RequestStatisticResponse {
+  code: number;
+  msg?: string | null;
+  data?: RequestStatisticData | null;
+}
+
+// ================= 用户听歌记录 =================
+export interface MusicListenRequest {
+  userId: number;
+  musicId: number;
+}
+
+export interface MusicListenResponse {
+  code: number;
+  msg?: string | null;
+  data?: Record<string, any> | null;
+}
